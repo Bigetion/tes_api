@@ -1,0 +1,27 @@
+<h1 class="page-header ng-scope">Permissions</h1>
+<div class="col-md-12">
+    <div class="row">
+        <table class="table table-striped panel">
+            <thead>
+                <tr>
+                    <th>Permission Access</th>
+                    <th ng-repeat="role in var.roleList">{{role.role_name}}</th>
+                </tr>
+            </thead>
+            <tbody ng-repeat="module in var.moduleList">
+                <tr>
+                    <td colspan="{{var.roleList.length+1}}">From Module <b>{{module.moduleName}}</b> and Controller <b>{{module.controllerName}}</b></td>
+                </tr>
+                <tr ng-repeat="functionItem in module.functionList">
+                    <td>{{module.moduleName+'/'+module.controllerName+'/'+functionItem}}</td>
+                    <td ng-repeat="role in var.roleList">
+                        <!--<span ng-if="role.id_role==1" ng-init="var.functionModel[role.id_role][module.moduleName+'.'+module.controllerName+'.'+functionItem]=true"></span>
+                        <span ng-if="role.id_role!=1" ng-init="var.functionModel[role.id_role][module.moduleName+'.'+module.controllerName+'.'+functionItem]=onLoad().checkExist(role.id_role,module.moduleName+'.'+module.controllerName+'.'+functionItem)"></span>-->
+                        <md-checkbox ng-checked="var.functionModel[role.id_role][module.moduleName+'.'+module.controllerName+'.'+functionItem]" ng-click="onClick().checkBox(role.id_role,module.moduleName+'.'+module.controllerName+'.'+functionItem)" aria-label="{{module.moduleName+'_'+module.controllerName+'_'+functionItem.functionName}}"
+                            ng-disabled="role.id_role==1"></md-checkbox>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
