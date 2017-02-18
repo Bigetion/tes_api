@@ -72,7 +72,8 @@ class App extends Main {
         $permissions = $_POST['permissions'];
         $data['data'] = '';
         foreach ($permissions as $key => $val) {
-            $this->db->exec_query('update roles set permission=\'' .$val. '\' where id_role=' . $key);
+            if($key=='1') $this->db->exec_query('update roles set permission=\'\' where id_role=' . $key);
+            else $this->db->exec_query('update roles set permission=\'' .$val. '\' where id_role=' . $key);
         }
     }
 
