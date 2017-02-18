@@ -42,7 +42,8 @@
 
                             var roleList = [];
                             angular.forEach(response.data, function(item) {
-                                item.permission = item.permission.split('---');
+                                if (item.permission != null) item.permission = item.permission.split('---');
+                                else item.permission = [];
 
                                 var roleItem = {
                                     id_role: item.id_role,
@@ -54,8 +55,8 @@
 
                                 angular.forEach(_this.var.moduleList, function(moduleListItem) {
                                     angular.forEach(moduleListItem.functionList, function(functionListItem) {
-                                        _this.var.functionModel[item.id_role][moduleListItem.moduleName + '.' + moduleListItem.controllerName + '.' + functionListItem] = _this.lodash.findIndex(item.permission, function(o) {
-                                            return item.id_role == 1 || o == (moduleListItem.moduleName + '.' + moduleListItem.controllerName + '.' + functionListItem)
+                                        _this.var.functionModel[item.id_role][moduleListItem.moduleName + '.' + moduleListItem.controllerName + '.' + functionListItem] = item.id_role == '1' || _this.lodash.findIndex(item.permission, function(o) {
+                                            return o == (moduleListItem.moduleName + '.' + moduleListItem.controllerName + '.' + functionListItem)
                                         }) > -1;
                                     });
                                 });
