@@ -34,7 +34,7 @@ class App extends Main {
     }
 
     function getUserList(){
-        $data['data'] = $this->db->query("select u.id_role, u.username,r.role_name from users u, roles r where u.id_role=r.id_role")->get_data();
+        $data['data'] = $this->db->query("SELECT users.id_role,users.username, roles.role_name FROM users LEFT JOIN roles ON users.id_role=roles.id_role")->get_data();
         $this->render->json($data);
     }
 
