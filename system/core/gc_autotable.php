@@ -12,7 +12,7 @@ class Autotable {
 							  `id_role` int(10) NOT NULL AUTO_INCREMENT,
 							  `role_name` varchar(50) NOT NULL,
 							  `description` varchar(255) NOT NULL,
-							  `permission` text NOT NULL,
+							  `permission` text,
 							  PRIMARY KEY (`id_role`)
 							) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=latin1;");
             $data_role['id_role'] = '1';
@@ -34,8 +34,8 @@ class Autotable {
 							  `username` varchar(10) NOT NULL,
 							  `password` text NOT NULL,
 							  `id_role` int(10) NOT NULL,
-							  `id_type` tinyint(1) NOT NULL,
-							  `id_external` bigint(20) NOT NULL,
+							  `id_type` tinyint(1),
+							  `id_external` bigint(20),
 							  PRIMARY KEY (`id_user`)
 							) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;");
 							
