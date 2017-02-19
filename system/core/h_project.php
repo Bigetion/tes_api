@@ -83,7 +83,6 @@ class Project {
             $_SESSION[base_url.'user'] = "guest";
 			$_SESSION[base_url.'loginhash'] = password_hash(session_id()."noaktif",1);
             $_SESSION[base_url.'userhash'] = password_hash(session_id()."guest",1);
-            //redirect('',false);
         }
     }
 
