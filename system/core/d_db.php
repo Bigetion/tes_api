@@ -28,14 +28,15 @@ class DB
 
 	public function __construct($options = null)
 	{
-		$options = ['database_type' => 'mysql',
-								'database_name' => 'db_perpus',
-								'server' 				=> 'localhost',
-								'username' 			=> 'root',
-								'password' 			=> 'root',
-								'charset' 			=> 'utf8',
-								'port' 					=> 3306
-								];
+		$options = include('application/config/database.php');
+		// $options = ['database_type' => 'mysql',
+		// 						'database_name' => 'db_perpus',
+		// 						'server' 				=> 'localhost',
+		// 						'username' 			=> 'root',
+		// 						'password' 			=> 'root',
+		// 						'charset' 			=> 'utf8',
+		// 						'port' 					=> 3306
+		// 						];
 		try {
 			if (is_array($options))
 			{

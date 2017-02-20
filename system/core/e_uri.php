@@ -2,10 +2,11 @@
 class URI {
 	function __construct()
 	{
-        foreach (load_recursive('application/config') as $value) {
-            require_once($value);
-        }
+        // foreach (load_recursive('application/config') as $value) {
+        //     require_once($value);
+        // }
 		
+		$main_config = include('application/config/config.php');
         foreach ($main_config as $key => $value) {
             define($key, $value);
         }

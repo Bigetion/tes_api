@@ -1,9 +1,11 @@
 <?php 
-// Konfigurasi DATABASE ......................................
-$main_config['hostname'] = 'localhost';
-$main_config['username'] = 'root';
-$main_config['password'] = 'root';
-$main_config['database'] = 'db_perpus';
-$main_config['port']     = '3306';
-$main_config['charset']  = 'utf8';
+return array(
+	'database_type' => 'mysql',
+	'database_name' => 'db_perpus',
+	'server'        => 'localhost',
+	'username'      => 'root',
+	'password'      => 'root',
+	'charset'       => 'utf8',
+	'port'          => 3306
+)
 ?>
