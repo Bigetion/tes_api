@@ -1,7 +1,6 @@
 <?php  if ( ! defined('INDEX')) exit('No direct script access allowed');
 
 class Login extends Main {
-
     function index(){
         $this->render->json_post();
         $user = strtolower($_POST['username']);
@@ -24,12 +23,6 @@ class Login extends Main {
             }
         }
     }
-
-    function logout(){
-        session_destroy();
-        $this->set->success_message(true);
-    }
-
 }
 
 ?>

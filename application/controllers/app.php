@@ -1,7 +1,6 @@
 <?php  if ( ! defined('INDEX')) exit('No direct script access allowed');
 
 class App extends Main {
-
     function __construct() {
         $this->auth->permission();
     }
