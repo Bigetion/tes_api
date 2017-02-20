@@ -79,14 +79,14 @@ class Project {
         }
     }
 
-    function cek_permission() {        
+    function check_permission() {        
         $db = & load_class('DB');
         $permission = $this->project . '.' . $this->controller . '.' . $this->method;
         $data = $db->query("select * from roles where id_role='" . id_role . "'")->fetchAll();
         $permission_list = $data[0]['permission'];
         if (id_role != 1) {
             if (!in_array($permission, explode('---', $permission_list))) {
-                show_error('Permissions', 'You dont have permission to access this page');
+                show_error('Permission', 'You dont have permission to access this page');
             }
         }
     }
@@ -102,7 +102,7 @@ class Project {
 		if ($this->is_exist_project_controller(default_project,default_project_controller))
 					require_once('project/' . default_project . '/controllers/' . default_project_controller . '.php');
 				else
-					show_error('Config Error','Main project controller ' . default_project_controller . ' was not found');
+					show_error('Page not found','Main project controller ' . default_project_controller . ' was not found');
 				
 			$this->project = default_project;
             $this->controller = default_project_controller;
@@ -124,31 +124,32 @@ class Project {
 				if ($this->is_exist_project_controller(default_project,default_project_controller))
 					require_once('project/' . default_project . '/controllers/' . default_project_controller . '.php');
 				else
-					show_error('Config Error','Main project controller ' . default_project_controller . ' was not found');
+					show_error('Page not found','Main project controller ' . default_project_controller . ' was not found');
 							
 				foreach (load_recursive('project/' . $this->project . '/config') as $value) {
-					require_once($value);
-				}
-				foreach ($project_config as $key => $value) {
-					define($key, $value);
+					$project_config = include($value);
+                    foreach ($project_config as $key => $value) {
+                        define($key, $value);
+                    }
 				}		
 				
-				if(empty($this->controller) && empty($this->method)){ 
-					$this->controller = main_controller;
-					$this->method = default_method;
-				}elseif(empty($this->method)) $this->method = "index";
+				if(empty($this->controller) && empty($this->method)){
+                    if(defined('main_controller')){
+                        $this->controller = main_controller;
+                        if(defined('default_method')) $this->method = default_method;
+                    }
+				}
+                else if(empty($this->method)) $this->method = "index";
 				
 				if($this->is_exist_project_controller($this->project,$this->controller)) {
 					require_once('project/' . $this->project . '/controllers/' . $this->controller . '.php');
-				}else
-				show_error('Page Not Found','Controller ' . $this->controller . ' was not found');
-				
-				$this->cek_permission();
-			}else show_error();
+				}else show_error('Page not found','Controller ' . $this->controller . ' was not found');
+
+				$this->check_permission();
+			}else show_error('Page not found', 'Project '. $this->project . ' was not found');
 		}
 		
 		define('base_url_project', base_url . $this->project . '/');
-		
         $this->_render();
     }
 
@@ -159,7 +160,7 @@ class Project {
 		$base_directory = array('application','project','system');
 
 		if(in_array($this->controller,$base_directory)){
-			//redirect('',false);	
+			show_error('Permission', 'You dont have permission to access this page');	
 		}
 
         $Render = & load_class($controller);
@@ -173,8 +174,7 @@ class Project {
 			}			
             $Render->$method();
 		}
-        else
-            show_error();
+        else show_error('Page not found','Controller '.$this->controller.' with function '. $this->method .' was not found');
     }
 }
 
