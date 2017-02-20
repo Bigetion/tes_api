@@ -86,6 +86,11 @@ class data extends Controller {
 			}
 			$this->render->json($data);
 		}
+
+		function getUser(){
+			$data['data'] = $this->medoo->select("users", ["id_user","username"]);
+			$this->render->json($data);				
+		}
 }
 
 ?>

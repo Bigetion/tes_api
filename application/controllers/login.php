@@ -9,10 +9,8 @@ class Login extends Main {
 
         if (empty($user)|| empty($password))
             $this->set->error_message("Username atau password harus diisi.!");
-
-        $this->db->query("select * from users where username='$user'");
-        $data = $this->db->get_data();
-
+            
+        $data = $this->db->select("users","*",["username"=>$user]);
         if (count($data) == 0)
             $this->set->error_message('Username dan Password salah..!');
         else {

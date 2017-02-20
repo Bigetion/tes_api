@@ -171,65 +171,6 @@ class Set {
 		echo json_encode($data);
 		exit();
 	}
-
-    /* function render_error() {
-        echo '<script>
-					parent.$(".loading").hide();
-					parent.$(".error").show().html("");';
-        foreach ($this->data['error'] as $key => $value) {
-            echo 'parent.$("#error_' . $key . '").html("' . $this->data['error'][$key] . '");';
-        }
-        echo '</script>';
-    }
-	 */
-	/* function render_message($attribute,$message){
-		echo '<script>
-					parent.$(".loading").hide();
-					parent.$("'.$attribute.'").show().html("'.str_replace('"','\"', $message).'");';
-        echo '</script>';
-	} */
-
-    /* function redirect($url, $is_project = true) {
-        if ($is_project) {
-            echo '<script>
-				  	parent.window.location=\'' . base_url_project . $url . '\'
-			  </script>';
-        } else {
-            echo '<script>
-				  	parent.window.location=\'' . base_url . $url . '\'
-			  </script>';
-        }
-    } */
-	
-	/* function only_by_frame($url, $is_project = true){
-		if ($is_project) {
-			echo "<script> if(window==window.top) {
-			parent.window.location= '" . base_url_project . $url_redirect . "'; }
-			</script>";
-		}else{
-			echo "<script> if(window==window.top) {
-			parent.window.location= '" . base_url . $url_redirect . "'; }
-			</script>";
-		}
-	} */
-
-    /* function new_tab($alamat = '', $is_project = true) {
-        echo "<script>";
-        if ($is_project == true)
-            echo "parent.window.open('" . base_url_project . $alamat . "')";
-        else
-            echo "parent.window.open('" . base_url . $alamat . "')";
-        echo "</script>";
-    }
-
-    function show_page($element, $page_url, $new_page_url="") {
-		if($new_page_url!="") $new_page_url = 'parent.window.history.pushState("", "", "'.$new_page_url.'");';;
-        echo '<script>
-					parent.$(".loading").hide();
-					parent.$(".error").show().html("");
-					parent.$("' . $element . '").load("' . $page_url . '");'.$new_page_url.'
-			  </script>';
-    } */
 }
 
 ?>

@@ -29,17 +29,21 @@ class App extends Main {
     }
 
     function getRoleList(){
-        $data['data'] = $this->db->query("select * from roles")->get_data();
+        $data['data'] = $this->db->select("roles","*");
         $this->render->json($data);
     }
 
     function getUserList(){
-        $data['data'] = $this->db->query("SELECT users.id_role,users.username, roles.role_name FROM users LEFT JOIN roles ON users.id_role=roles.id_role")->get_data();
+        $data['data'] = $this->db->select("users",[
+            "[>]roles" => "id_role"
+        ],[
+            "users.id_role","users.username", "roles.role_name"
+        ]);
         $this->render->json($data);
     }
 
     function getPermissions() {
-        $data['data'] = $this->db->query("select * from roles")->get_data();
+        $data['data'] = $this->db->select("roles","*");
         $a = load_file('project');
 		if(count($a)>0){
         foreach ($a as $value) {
@@ -72,10 +76,13 @@ class App extends Main {
         $permissions = $_POST['permissions'];
         $data['data'] = '';
         foreach ($permissions as $key => $val) {
-            if($key=='1') $this->db->exec_query('update roles set permission=\'\' where id_role=' . $key);
-            else $this->db->exec_query('update roles set permission=\'' .$val. '\' where id_role=' . $key);
+            if($key==1) {
+                $this->db->update("roles",["permission"=>''],["id_role"=>$key]);
+            }
+            else {
+                $this->db->update("roles",["permission"=>$val],["id_role"=>$key]);
+            }
         }
     }
-
 }    
 ?>

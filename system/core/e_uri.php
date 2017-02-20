@@ -2,7 +2,6 @@
 class URI {
 	function __construct()
 	{
-		// ---------------------------------------------------------------------------------
         foreach (load_recursive('application/config') as $value) {
             require_once($value);
         }
@@ -16,21 +15,7 @@ class URI {
         
         foreach (load_recursive('application/helpers') as $value) {
             require_once($value);
-        }
-        // ---------------------------------------------------------------------------------------------	
-		
-		$db = & load_class('DB');
-		$tabel = $db->get_table();
-		if(!in_array('short_link', $tabel)){
-			$db->exec_query("CREATE TABLE `short_link` (
-							  `id_link` int(11) NOT NULL AUTO_INCREMENT,
-							  `link` varchar(100) NOT NULL,
-							  `short_link` varchar(50) NOT NULL,
-							  PRIMARY KEY (`id_link`),
-							  UNIQUE KEY `short_link` (`short_link`),
-							  UNIQUE KEY `link` (`link`)
-							) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;");
-		}
+        }	
 	}
 	
     function segment($nomor){
@@ -42,9 +27,10 @@ class URI {
 		$ext = array(".html", ".aspx", ".asp");
 		
 		for($i=0;$i<count($uri_link);$i++){
-			$link = $db->query("select * from short_link where short_link='".str_replace($ext, '', $uri_link[$i])."'")->fetch_first();
+			$link = $db->query("select * from short_link where short_link='".str_replace($ext, '', $uri_link[$i])."'")->fetchAll();
 
 			if(count($link)>0) {
+				$link = $link[0];
 				$uri_new = str_replace($uri_link[$i],$link["link"],$uri_new);
 			}
 		}

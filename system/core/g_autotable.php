@@ -8,13 +8,13 @@ class Autotable {
 		$tabel = $db->get_table();
 		
 		if (!in_array('roles', $tabel)) {
-            $db->exec_query("CREATE TABLE `roles` (
+            $db->exec("CREATE TABLE `roles` (
 							  `id_role` int(10) NOT NULL AUTO_INCREMENT,
 							  `role_name` varchar(50) NOT NULL,
 							  `description` varchar(255) NOT NULL,
 							  `permission` text,
 							  PRIMARY KEY (`id_role`)
-							) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=latin1;");
+							)");
             $data_role['id_role'] = '1';
             $data_role['role_name'] = 'Administrator';
             $data_role['description'] = 'Memiliki Hak Akses Tertinggi Dalam Aplikasi';
@@ -29,7 +29,7 @@ class Autotable {
         }
 		
 		if (!in_array('users', $tabel)) {
-            $db->exec_query("CREATE TABLE `users` (
+            $db->exec("CREATE TABLE `users` (
 							  `id_user` int(10) NOT NULL AUTO_INCREMENT,
 							  `username` varchar(10) NOT NULL,
 							  `password` text NOT NULL,
@@ -37,7 +37,7 @@ class Autotable {
 							  `id_type` tinyint(1),
 							  `id_external` bigint(20),
 							  PRIMARY KEY (`id_user`)
-							) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;");
+							)");
 							
             $data_user['id_user'] = '1';
             $data_user['username'] = 'Admin';
@@ -51,9 +51,20 @@ class Autotable {
             $data_user['id_role'] = '2';
             $db->insert('users', $data_user);
         }
+
+		if(!in_array('short_link', $tabel)){
+			$db->exec("CREATE TABLE `short_link` (
+							  `id_link` int(11) NOT NULL AUTO_INCREMENT,
+							  `link` varchar(100) NOT NULL,
+							  `short_link` varchar(50) NOT NULL,
+							  PRIMARY KEY (`id_link`),
+							  UNIQUE KEY `short_link` (`short_link`),
+							  UNIQUE KEY `link` (`link`)
+							)");
+		}
 		
 		if (!in_array('pages', $tabel)) {
-            $db->exec_query("CREATE TABLE `pages` (
+            $db->exec("CREATE TABLE `pages` (
 							  `id_page` varchar(50) NOT NULL,
 							  `content` longblob NOT NULL,
 							  PRIMARY KEY (`id_page`)
@@ -61,7 +72,7 @@ class Autotable {
         }
 		
 		if (!in_array('posts', $tabel)) {
-            $db->exec_query("CREATE TABLE `posts` (
+            $db->exec("CREATE TABLE `posts` (
 							  `id_post` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 							  `post_author` bigint(20) unsigned NOT NULL DEFAULT '0',
 							  `id_category` varchar(50) NOT NULL DEFAULT '0',
@@ -77,11 +88,11 @@ class Autotable {
 							  PRIMARY KEY (`id_post`),
 							  KEY `type_status_date` (`post_date`,`id_post`),
 							  KEY `post_author` (`post_author`)
-							) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=latin1;");
+							)");
         }	
 		
 		if(!in_array('post_terms', $tabel)){
-			$db->exec_query("CREATE TABLE `post_terms` (
+			$db->exec("CREATE TABLE `post_terms` (
 							  `term_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 							  `name` varchar(200) NOT NULL DEFAULT '',
 							  `slug` varchar(200) NOT NULL DEFAULT '',
@@ -89,11 +100,11 @@ class Autotable {
 							  PRIMARY KEY (`term_id`),
 							  UNIQUE KEY `slug` (`slug`),
 							  KEY `name` (`name`)
-							) ENGINE=MyISAM AUTO_INCREMENT=22 DEFAULT CHARSET=utf8;");	
+							)");	
 		}
 		
 		if(!in_array('post_term_taxonomy', $tabel)){
-			$db->exec_query("CREATE TABLE `post_term_taxonomy` (
+			$db->exec("CREATE TABLE `post_term_taxonomy` (
 							  `term_taxonomy_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 							  `term_id` bigint(20) unsigned NOT NULL DEFAULT '0',
 							  `taxonomy` varchar(32) NOT NULL DEFAULT '',
@@ -103,7 +114,7 @@ class Autotable {
 							  PRIMARY KEY (`term_taxonomy_id`),
 							  UNIQUE KEY `term_id_taxonomy` (`term_id`,`taxonomy`),
 							  KEY `taxonomy` (`taxonomy`)
-							) ENGINE=MyISAM AUTO_INCREMENT=19 DEFAULT CHARSET=utf8;");	
+							)");	
 		}		
 	}        
 

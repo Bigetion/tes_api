@@ -1,1503 +1,1282 @@
 <?php
-/**
- * MySQLi Database Class
+if (!defined('INDEX'))
+    exit('No direct script access allowed');
+/*!
+ * Medoo database framework
+ * http://medoo.in
+ * Version 1.2.1
  *
- * @category  Database Access
- * @package   Database
- * @author    Vivek V <vivekv@vivekv.com>
- * @copyright Copyright (c) 2014
- * @license   http://opensource.org/licenses/gpl-3.0.html GNU Public License
- * @version   1.4.6
- **/
+ * Copyright 2017, Angel Lai
+ * Released under the MIT license
+ */
 
-class Db
+use PDO;
+class DB
 {
+	// General
+	protected $database_type;
 
-	protected static $_instance;
+	// Optional
+	protected $prefix;
 
-	/**
-	 * MySQLi instance
-	 */
-	protected $_mysqli;
+	protected $option = [];
 
-	/**
-	 * The SQL Query
-	 */
-	private $_query;
+	// Variable
+	protected $logs = [];
 
-	/**
-	 * Affected rows after a select/update/delete query
-	 */
-	var $affected_rows = 0;
-	/**
-	 * Limit and offset
-	 */
-	private $_limit;
-	private $_offset;
-	private $_result;
-	var $error = '';
-	var $debug = TRUE;
-	var $die_on_error = TRUE;
-	// Script execution will stop if set to TRUE. Default is TRUE ;
-	private $_last_query = '';
-	private $_executed = FALSE;
-	private $_delete = FALSE;
-	private $_distinct = FALSE;
-	protected $table_prefix;
-	private $_dryrun = FALSE;
+	protected $debug_mode = false;
 
-	/**
-	 * The table name used as FROM
-	 */
-	var $_fromTable;
+	public function __construct($options = null)
+	{
+		$options = ['database_type' => 'mysql',
+								'database_name' => 'db_perpus',
+								'server' => 'localhost',
+								'username' => 'root',
+								'password' => 'root',
+								'charset' => 'utf8',
+								'port' => 3306
+								];
+		try {
+			if (is_array($options))
+			{
+				if (isset($options['database_type']))
+				{
+					$this->database_type = strtolower($options['database_type']);
+				}
+			}
+			else
+			{
+				return false;
+			}
 
-	/**
-	 * Arrays
-	 */
-	var $array_where = array();
-	var $array_select = array();
-	var $array_wherein = array();
-	var $array_groupby = array();
-	var $array_having = array();
-	var $array_orderby = array();
-	var $array_join = array();
-	
-	private $active_page;
-	private $page_link;
-	
-	private $connect;
-	
-	private $config_number = 1;
+			if (isset($options['prefix']))
+			{
+				$this->prefix = $options['prefix'];
+			}
 
-	public function __construct()
-	{		
-	
-		if(!$this->connect) $this->connection();
-		//$this -> _mysqli = @new mysqli($host, $username, $password, $db, $port);
-		//if (!$this -> _mysqli)
-			//die($this -> oops('There was a problem connecting to the database'));
-		//$this -> _mysqli -> set_charset($charset);
-		//$this->exec_query("ALTER DATABASE ". $db ." CHARACTER SET ". $charset .";");
-		self::$_instance = $this;
-	}
-	
-	function connection($config_number = 1){
-		if($config_number == 1){
-			if(defined("hostname")) $host = hostname;
-			if(defined("username")) $username = username;
-			if(defined("password")) $password = password;
-			if(defined("database")) $db = database;
-			if(defined("port")) $port = port;
-			if(defined("charset")) $charset = charset;
-		}else{
-			if(defined("hostname$config_number")) $host = constant("hostname$config_number"); else $host = hostname;
-			if(defined("username$config_number")) $username = constant("username$config_number"); else $username = username;
-			if(defined("password$config_number")) $password = constant("password$config_number"); else $password = password;
-			if(defined("database$config_number")) $db = constant("database$config_number"); else $db = database;
-			if(defined("port$config_number")) $port = constant("port$config_number"); else $port = port;
-			if(defined("charset$config_number")) $charset = constant("charset$config_number"); else $charset = charset;
+			if (isset($options['option']))
+			{
+				$this->option = $options['option'];
+			}
+
+			if (isset($options['command']) && is_array($options['command']))
+			{
+				$commands = $options['command'];
+			}
+			else
+			{
+				$commands = [];
+			}
+
+			if (isset($options['dsn']))
+			{
+				if (isset($options['dsn']['driver']))
+				{
+					$attr = $options['dsn'];
+				}
+				else
+				{
+					return false;
+				}
+			}
+			else
+			{
+				if (
+					isset($options['port']) &&
+					is_int($options['port'] * 1)
+				)
+				{
+					$port = $options['port'];
+				}
+
+				$is_port = isset($port);
+
+				switch ($this->database_type)
+				{
+					case 'mariadb':
+					case 'mysql':
+						$attr = [
+							'driver' => 'mysql',
+							'dbname' => $options['database_name']
+						];
+
+						if (isset($options['socket']))
+						{
+							$attr['unix_socket'] = $options['socket'];
+						}
+						else
+						{
+							$attr['host'] = $options['server'];
+
+							if ($is_port)
+							{
+								$attr['port'] = $port;
+							}
+						}
+
+						// Make MySQL using standard quoted identifier
+						$commands[] = 'SET SQL_MODE=ANSI_QUOTES';
+						break;
+
+					case 'pgsql':
+						$attr = [
+							'driver' => 'pgsql',
+							'host' => $options['server'],
+							'dbname' => $options['database_name']
+						];
+
+						if ($is_port)
+						{
+							$attr['port'] = $port;
+						}
+
+						break;
+
+					case 'sybase':
+						$attr = [
+							'driver' => 'dblib',
+							'host' => $options['server'],
+							'dbname' => $options['database_name']
+						];
+
+						if ($is_port)
+						{
+							$attr['port'] = $port;
+						}
+
+						break;
+
+					case 'oracle':
+						$attr = [
+							'driver' => 'oci',
+							'dbname' => $options['server'] ?
+								'//' . $options['server'] . ($is_port ? ':' . $port : ':1521') . '/' . $options['database_name'] :
+								$options['database_name']
+						];
+
+						if (isset($options['charset']))
+						{
+							$attr['charset'] = $options['charset'];
+						}
+
+						break;
+
+					case 'mssql':
+						if (strstr(PHP_OS, 'WIN'))
+						{
+							$attr = [
+								'driver' => 'sqlsrv',
+								'server' => $options['server'],
+								'database' => $options['database_name']
+							];
+						}
+						else
+						{
+							$attr = [
+								'driver' => 'dblib',
+								'host' => $options['server'],
+								'dbname' => $options['database_name']
+							];
+						}
+
+						if ($is_port)
+						{
+							$attr['port'] = $port;
+						}
+
+						// Keep MSSQL QUOTED_IDENTIFIER is ON for standard quoting
+						$commands[] = 'SET QUOTED_IDENTIFIER ON';
+
+						// Make ANSI_NULLS is ON for NULL value
+						$commands[] = 'SET ANSI_NULLS ON';
+						break;
+
+					case 'sqlite':
+						$this->pdo = new PDO('sqlite:' . $options['database_file'], null, null, $this->option);
+
+						return $this;
+				}
+			}
+
+			$driver = $attr['driver'];
+
+			unset($attr['driver']);
+
+			$stack = [];
+
+			foreach ($attr as $key => $value)
+			{
+				if (is_int($key))
+				{
+					$stack[] = $value;
+				}
+				else
+				{
+					$stack[] = $key . '=' . $value;
+				}
+			}
+
+			$dsn = $driver . ':' . implode($stack, ';');
+
+			if (
+				in_array($this->database_type, ['mariadb', 'mysql', 'pgsql', 'sybase', 'mssql']) &&
+				$options['charset']
+			)
+			{
+				$commands[] = "SET NAMES '" . $options['charset'] . "'";
+			}
+
+			$this->pdo = new PDO(
+				$dsn,
+				$options['username'],
+				$options['password'],
+				$this->option
+			);
+
+			foreach ($commands as $value)
+			{
+				$this->pdo->exec($value);
+			}
 		}
+		catch (PDOException $e) {
+			throw new Exception($e->getMessage());
+		}
+	}
+
+	public function query($query)
+	{
+		if ($this->debug_mode)
+		{
+			echo $query;
+
+			$this->debug_mode = false;
+
+			return false;
+		}
+
+		$this->logs[] = $query;
+
+		return $this->pdo->query($query);
+	}
+
+	public function exec($query)
+	{
+		if ($this->debug_mode)
+		{
+			echo $query;
+
+			$this->debug_mode = false;
+
+			return false;
+		}
+
+		$this->logs[] = $query;
+
+		return $this->pdo->exec($query);
+	}
+
+	public function quote($string)
+	{
+		return $this->pdo->quote($string);
+	}
+
+	protected function tableQuote($table)
+	{
+		return '"' . $this->prefix . $table . '"';
+	}
+
+	protected function columnQuote($string)
+	{
+		preg_match('/(\(JSON\)\s*|^#)?([a-zA-Z0-9_]*)\.([a-zA-Z0-9_]*)/', $string, $column_match);
+
+		if (isset($column_match[ 2 ], $column_match[ 3 ]))
+		{
+			return '"' . $this->prefix . $column_match[ 2 ] . '"."' . $column_match[ 3 ] . '"';
+		}
+
+		return '"' . $string . '"';
+	}
+
+	protected function columnPush(&$columns)
+	{
+		if ($columns == '*')
+		{
+			return $columns;
+		}
+
+		if (is_string($columns))
+		{
+			$columns = [$columns];
+		}
+
+		$stack = [];
+
+		foreach ($columns as $key => $value)
+		{
+			if (is_array($value))
+			{
+				$stack[] = $this->columnPush($value);
+			}
+			else
+			{
+				preg_match('/([a-zA-Z0-9_\-\.]*)\s*\(([a-zA-Z0-9_\-]*)\)/i', $value, $match);
+
+				if (isset($match[ 1 ], $match[ 2 ]))
+				{
+					$stack[] = $this->columnQuote( $match[ 1 ] ) . ' AS ' . $this->columnQuote( $match[ 2 ] );
+
+					$columns[ $key ] = $match[ 2 ];
+				}
+				else
+				{
+					$stack[] = $this->columnQuote( $value );
+				}
+			}
+		}
+
+		return implode($stack, ',');
+	}
+
+	protected function arrayQuote($array)
+	{
+		$temp = [];
+
+		foreach ($array as $value)
+		{
+			$temp[] = is_int($value) ? $value : $this->pdo->quote($value);
+		}
+
+		return implode($temp, ',');
+	}
+
+	protected function innerConjunct($data, $conjunctor, $outer_conjunctor)
+	{
+		$haystack = [];
+
+		foreach ($data as $value)
+		{
+			$haystack[] = '(' . $this->dataImplode($value, $conjunctor) . ')';
+		}
+
+		return implode($outer_conjunctor . ' ', $haystack);
+	}
+
+	protected function fnQuote($column, $string)
+	{
+		return (strpos($column, '#') === 0 && preg_match('/^[A-Z0-9\_]*\([^)]*\)$/', $string)) ?
+
+			$string :
+
+			$this->quote($string);
+	}
+
+	protected function dataImplode($data, $conjunctor, $outer_conjunctor = null)
+	{
+		$wheres = [];
+
+		foreach ($data as $key => $value)
+		{
+			$type = gettype($value);
+
+			if (
+				preg_match("/^(AND|OR)(\s+#.*)?$/i", $key, $relation_match) &&
+				$type == 'array'
+			)
+			{
+				$wheres[] = 0 !== count(array_diff_key($value, array_keys(array_keys($value)))) ?
+					'(' . $this->dataImplode($value, ' ' . $relation_match[ 1 ]) . ')' :
+					'(' . $this->innerConjunct($value, ' ' . $relation_match[ 1 ], $conjunctor) . ')';
+			}
+			else
+			{
+				if (
+					is_int($key) &&
+					preg_match('/([\w\.\-]+)\[(\>|\>\=|\<|\<\=|\!|\=)\]([\w\.\-]+)/i', $value, $match)
+				)
+				{
+					$operator = $match[ 2 ];
+					
+					$wheres[] = $this->columnQuote($match[ 1 ]) . ' ' . $operator . ' ' . $this->columnQuote($match[ 3 ]);
+				}
+				else
+				{
+					preg_match('/(#?)([\w\.\-]+)(\[(\>|\>\=|\<|\<\=|\!|\<\>|\>\<|\!?~)\])?/i', $key, $match);
+					$column = $this->columnQuote($match[ 2 ]);
+
+					if (isset($match[ 4 ]))
+					{
+						$operator = $match[ 4 ];
+
+						if ($operator == '!')
+						{
+							switch ($type)
+							{
+								case 'NULL':
+									$wheres[] = $column . ' IS NOT NULL';
+									break;
+
+								case 'array':
+									$wheres[] = $column . ' NOT IN (' . $this->arrayQuote($value) . ')';
+									break;
+
+								case 'integer':
+								case 'double':
+									$wheres[] = $column . ' != ' . $value;
+									break;
+
+								case 'boolean':
+									$wheres[] = $column . ' != ' . ($value ? '1' : '0');
+									break;
+
+								case 'string':
+									$wheres[] = $column . ' != ' . $this->fnQuote($key, $value);
+									break;
+							}
+						}
+
+						if ($operator == '<>' || $operator == '><')
+						{
+							if ($type == 'array')
+							{
+								if ($operator == '><')
+								{
+									$column .= ' NOT';
+								}
+
+								if (is_numeric($value[ 0 ]) && is_numeric($value[ 1 ]))
+								{
+									$wheres[] = '(' . $column . ' BETWEEN ' . $value[ 0 ] . ' AND ' . $value[ 1 ] . ')';
+								}
+								else
+								{
+									$wheres[] = '(' . $column . ' BETWEEN ' . $this->quote($value[ 0 ]) . ' AND ' . $this->quote($value[ 1 ]) . ')';
+								}
+							}
+						}
+
+						if ($operator == '~' || $operator == '!~')
+						{
+							if ($type != 'array')
+							{
+								$value = [$value];
+							}
+
+							$connector = ' OR ';
+							$stack = array_values($value);
+
+							if (is_array($stack[0]))
+							{
+								if (isset($value['AND']) || isset($value['OR']))
+								{
+									$connector = ' ' . array_keys($value)[0] . ' ';
+									$value = $stack[0];
+								}
+							}
+
+							$like_clauses = [];
+
+							foreach ($value as $item)
+							{
+								$item = strval($item);
+
+								if (!preg_match('/(\[.+\]|_|%.+|.+%)/', $item))
+								{
+									$item = '%' . $item . '%';
+								}
+
+								$like_clauses[] = $column . ($operator === '!~' ? ' NOT' : '') . ' LIKE ' . $this->fnQuote($key, $item);
+							}
+
+							$wheres[] = '(' . implode($connector, $like_clauses) . ')';
+						}
+
+						if (in_array($operator, ['>', '>=', '<', '<=']))
+						{
+							$condition = $column . ' ' . $operator . ' ';
+
+							if (is_numeric($value))
+							{
+								$condition .= $value;
+							}
+							elseif (strpos($key, '#') === 0)
+							{
+								$condition .= $this->fnQuote($key, $value);
+							}
+							else
+							{
+								$condition .= $this->quote($value);
+							}
+
+							$wheres[] = $condition;
+						}
+					}
+					else
+					{
+						switch ($type)
+						{
+							case 'NULL':
+								$wheres[] = $column . ' IS NULL';
+								break;
+
+							case 'array':
+								$wheres[] = $column . ' IN (' . $this->arrayQuote($value) . ')';
+								break;
+
+							case 'integer':
+							case 'double':
+								$wheres[] = $column . ' = ' . $value;
+								break;
+
+							case 'boolean':
+								$wheres[] = $column . ' = ' . ($value ? '1' : '0');
+								break;
+
+							case 'string':
+								$wheres[] = $column . ' = ' . $this->fnQuote($key, $value);
+								break;
+						}
+					}
+				}
+			}
+		}
+
+		return implode($conjunctor . ' ', $wheres);
+	}
+
+	protected function whereClause($where)
+	{
+		$where_clause = '';
+
+		if (is_array($where))
+		{
+			$where_keys = array_keys($where);
+			$where_AND = preg_grep("/^AND\s*#?$/i", $where_keys);
+			$where_OR = preg_grep("/^OR\s*#?$/i", $where_keys);
+
+			$single_condition = array_diff_key($where, array_flip(
+				['AND', 'OR', 'GROUP', 'ORDER', 'HAVING', 'LIMIT', 'LIKE', 'MATCH']
+			));
+
+			if ($single_condition != [])
+			{
+				$condition = $this->dataImplode($single_condition, ' AND');
+
+				if ($condition != '')
+				{
+					$where_clause = ' WHERE ' . $condition;
+				}
+			}
+
+			if (!empty($where_AND))
+			{
+				$value = array_values($where_AND);
+				$where_clause = ' WHERE ' . $this->dataImplode($where[ $value[ 0 ] ], ' AND');
+			}
+
+			if (!empty($where_OR))
+			{
+				$value = array_values($where_OR);
+				$where_clause = ' WHERE ' . $this->dataImplode($where[ $value[ 0 ] ], ' OR');
+			}
+
+			if (isset($where[ 'MATCH' ]))
+			{
+				$MATCH = $where[ 'MATCH' ];
+
+				if (is_array($MATCH) && isset($MATCH[ 'columns' ], $MATCH[ 'keyword' ]))
+				{
+					$columns = str_replace('.', '"."', implode($MATCH[ 'columns' ], '", "'));
+					$keywords = $this->quote($MATCH[ 'keyword' ]);
+
+					$where_clause .= ($where_clause != '' ? ' AND ' : ' WHERE ') . ' MATCH ("' . $columns . '") AGAINST (' . $keywords . ')';
+				}
+			}
+
+			if (isset($where[ 'GROUP' ]))
+			{
+				$where_clause .= ' GROUP BY ' . $this->columnQuote($where[ 'GROUP' ]);
+
+				if (isset($where[ 'HAVING' ]))
+				{
+					$where_clause .= ' HAVING ' . $this->dataImplode($where[ 'HAVING' ], ' AND');
+				}
+			}
+
+			if (isset($where[ 'ORDER' ]))
+			{
+				$ORDER = $where[ 'ORDER' ];
+
+				if (is_array($ORDER))
+				{
+					$stack = [];
+
+					foreach ($ORDER as $column => $value)
+					{
+						if (is_array($value))
+						{
+							$stack[] = 'FIELD(' . $this->columnQuote($column) . ', ' . $this->arrayQuote($value) . ')';
+						}
+						else if ($value === 'ASC' || $value === 'DESC')
+						{
+							$stack[] = $this->columnQuote($column) . ' ' . $value;
+						}
+						else if (is_int($column))
+						{
+							$stack[] = $this->columnQuote($value);
+						}
+					}
+
+					$where_clause .= ' ORDER BY ' . implode($stack, ',');
+				}
+				else
+				{
+					$where_clause .= ' ORDER BY ' . $this->columnQuote($ORDER);
+				}
+			}
+
+			if (isset($where[ 'LIMIT' ]))
+			{
+				$LIMIT = $where[ 'LIMIT' ];
+
+				if (is_numeric($LIMIT))
+				{
+					$where_clause .= ' LIMIT ' . $LIMIT;
+				}
+
+				if (
+					is_array($LIMIT) &&
+					is_numeric($LIMIT[ 0 ]) &&
+					is_numeric($LIMIT[ 1 ])
+				)
+				{
+					if ($this->database_type === 'pgsql')
+					{
+						$where_clause .= ' OFFSET ' . $LIMIT[ 0 ] . ' LIMIT ' . $LIMIT[ 1 ];
+					}
+					else
+					{
+						$where_clause .= ' LIMIT ' . $LIMIT[ 0 ] . ',' . $LIMIT[ 1 ];
+					}
+				}
+			}
+		}
+		else
+		{
+			if ($where != null)
+			{
+				$where_clause .= ' ' . $where;
+			}
+		}
+
+		return $where_clause;
+	}
+
+	protected function selectContext($table, $join, &$columns = null, $where = null, $column_fn = null)
+	{
+		preg_match('/([a-zA-Z0-9_\-]*)\s*\(([a-zA-Z0-9_\-]*)\)/i', $table, $table_match);
+
+		if (isset($table_match[ 1 ], $table_match[ 2 ]))
+		{
+			$table = $this->tableQuote($table_match[ 1 ]);
+
+			$table_query = $table . ' AS ' . $this->tableQuote($table_match[ 2 ]);
+		}
+		else
+		{
+			$table = $this->tableQuote($table);
+
+			$table_query = $table;
+		}
+
+		$join_key = is_array($join) ? array_keys($join) : null;
+
+		if (
+			isset($join_key[ 0 ]) &&
+			strpos($join_key[ 0 ], '[') === 0
+		)
+		{
+			$table_join = [];
+
+			$join_array = [
+				'>' => 'LEFT',
+				'<' => 'RIGHT',
+				'<>' => 'FULL',
+				'><' => 'INNER'
+			];
+
+			foreach($join as $sub_table => $relation)
+			{
+				preg_match('/(\[(\<|\>|\>\<|\<\>)\])?([a-zA-Z0-9_\-]*)\s?(\(([a-zA-Z0-9_\-]*)\))?/', $sub_table, $match);
+
+				if ($match[ 2 ] != '' && $match[ 3 ] != '')
+				{
+					if (is_string($relation))
+					{
+						$relation = 'USING ("' . $relation . '")';
+					}
+
+					if (is_array($relation))
+					{
+						// For ['column1', 'column2']
+						if (isset($relation[ 0 ]))
+						{
+							$relation = 'USING ("' . implode($relation, '", "') . '")';
+						}
+						else
+						{
+							$joins = [];
+
+							foreach ($relation as $key => $value)
+							{
+								$joins[] = (
+									strpos($key, '.') > 0 ?
+										// For ['tableB.column' => 'column']
+										$this->columnQuote($key) :
+
+										// For ['column1' => 'column2']
+										$table . '."' . $key . '"'
+								) .
+								' = ' .
+								$this->tableQuote(isset($match[ 5 ]) ? $match[ 5 ] : $match[ 3 ]) . '."' . $value . '"';
+							}
+
+							$relation = 'ON ' . implode($joins, ' AND ');
+						}
+					}
+
+					$table_name = $this->tableQuote($match[ 3 ]) . ' ';
+
+					if (isset($match[ 5 ]))
+					{
+						$table_name .= 'AS ' . $this->tableQuote($match[ 5 ]) . ' ';
+					}
+
+					$table_join[] = $join_array[ $match[ 2 ] ] . ' JOIN ' . $table_name . $relation;
+				}
+			}
+
+			$table_query .= ' ' . implode($table_join, ' ');
+		}
+		else
+		{
+			if (is_null($columns))
+			{
+				if (is_null($where))
+				{
+					if (
+						is_array($join) &&
+						isset($column_fn)
+					)
+					{
+						$where = $join;
+						$columns = null;
+					}
+					else
+					{
+						$where = null;
+						$columns = $join;
+					}
+				}
+				else
+				{
+					$where = $join;
+					$columns = null;
+				}
+			}
+			else
+			{
+				$where = $columns;
+				$columns = $join;
+			}
+		}
+
+		if (isset($column_fn))
+		{
+			if ($column_fn == 1)
+			{
+				$column = '1';
+
+				if (is_null($where))
+				{
+					$where = $columns;
+				}
+			}
+			else
+			{
+				if (empty($columns))
+				{
+					$columns = '*';
+					$where = $join;
+				}
+
+				$column = $column_fn . '(' . $this->columnPush($columns) . ')';
+			}
+		}
+		else
+		{
+			$column = $this->columnPush($columns);
+		}
+
+		return 'SELECT ' . $column . ' FROM ' . $table_query . $this->whereClause($where);
+	}
+
+	protected function dataMap($index, $key, $value, $data, &$stack)
+	{
+		if (is_array($value))
+		{
+			$sub_stack = [];
+
+			foreach ($value as $sub_key => $sub_value)
+			{
+				if (is_array($sub_value))
+				{
+					$current_stack = $stack[ $index ][ $key ];
+
+					$this->dataMap(false, $sub_key, $sub_value, $data, $current_stack);
+
+					$stack[ $index ][ $key ][ $sub_key ] = $current_stack[ 0 ][ $sub_key ];
+				}
+				else
+				{
+					$this->dataMap(false, preg_replace('/^[\w]*\./i', "", $sub_value), $sub_key, $data, $sub_stack);
+
+					$stack[ $index ][ $key ] = $sub_stack;
+				}
+			}
+		}
+		else
+		{
+			if ($index !== false)
+			{
+				$stack[ $index ][ $value ] = $data[ $value ];
+			}
+			else
+			{
+				if (preg_match('/[a-zA-Z0-9_\-\.]*\s*\(([a-zA-Z0-9_\-]*)\)/i', $key, $key_match))
+				{
+					$key = $key_match[ 1 ];
+				}
+
+				$stack[ $key ] = $data[ $key ];
+			}
+		}
+	}
+
+	public function select($table, $join, $columns = null, $where = null)
+	{
+		$column = $where == null ? $join : $columns;
+
+		$is_single_column = (is_string($column) && $column !== '*');
 		
-		// Get the default port number if not given.
-		if ($port == NULL || $port == "")
-			$port = ini_get('mysqli.default_port');
-		
-		$this->connect = @mysqli_connect($host, $username, $password, $db, $port);
-        if (!$this->connect) {
-            show_error('Database Connection Error.', mysqli_connect_error());
-            exit();
-        }	
-		
+		$query = $this->query($this->selectContext($table, $join, $columns, $where));
+
+		$stack = [];
+
+		$index = 0;
+
+		if (!$query)
+		{
+			return false;
+		}
+
+		if ($columns === '*')
+		{
+			return $query->fetchAll(PDO::FETCH_ASSOC);
+		}
+
+		if ($is_single_column)
+		{
+			return $query->fetchAll(PDO::FETCH_COLUMN);
+		}
+
+		while ($row = $query->fetch(PDO::FETCH_ASSOC))
+		{
+			foreach ($columns as $key => $value)
+			{
+				if (!is_array($value))
+				{
+					$value = preg_replace('/^[\w]*\./i', "", $value);
+				}
+
+				$this->dataMap($index, $key, $value, $row, $stack);
+			}
+
+			$index++;
+		}
+
+		return $stack;
+	}
+
+	public function insert($table, $datas)
+	{
+		$stack = [];
+		$columns = [];
+		$fields = [];
+
+		// Check indexed or associative array
+		if (!isset($datas[ 0 ]))
+		{
+			$datas = [$datas];
+		}
+
+		foreach ($datas as $data)
+		{
+			foreach ($data as $key => $value)
+			{
+				$columns[] = $key;
+			}
+		}
+
+		$columns = array_unique($columns);
+
+		foreach ($datas as $data)
+		{
+			$values = [];
+
+			foreach ($columns as $key)
+			{
+				if (!isset($data[$key]))
+				{
+					$values[] = 'NULL';
+				}
+				else
+				{
+					$value = $data[$key];
+
+					switch (gettype($value))
+					{
+						case 'NULL':
+							$values[] = 'NULL';
+							break;
+
+						case 'array':
+							preg_match("/\(JSON\)\s*([\w]+)/i", $key, $column_match);
+
+							$values[] = isset($column_match[ 0 ]) ?
+								$this->quote(json_encode($value)) :
+								$this->quote(serialize($value));
+							break;
+
+						case 'boolean':
+							$values[] = ($value ? '1' : '0');
+							break;
+
+						case 'integer':
+						case 'double':
+						case 'string':
+							$values[] = $this->fnQuote($key, $value);
+							break;
+					}
+				}
+			}
+
+			$stack[] = '(' . implode($values, ', ') . ')';
+		}
+
+		foreach ($columns as $key)
+		{
+			$fields[] = $this->columnQuote(preg_replace("/^(\(JSON\)\s*|#)/i", "", $key));
+		}
+
+		return $this->exec('INSERT INTO ' . $this->tableQuote($table) . ' (' . implode(', ', $fields) . ') VALUES ' . implode(', ', $stack));
+	}
+
+	public function update($table, $data, $where = null)
+	{
+		$fields = [];
+
+		foreach ($data as $key => $value)
+		{
+			preg_match('/([\w]+)(\[(\+|\-|\*|\/)\])?/i', $key, $match);
+
+			if (isset($match[ 3 ]))
+			{
+				if (is_numeric($value))
+				{
+					$fields[] = $this->columnQuote($match[ 1 ]) . ' = ' . $this->columnQuote($match[ 1 ]) . ' ' . $match[ 3 ] . ' ' . $value;
+				}
+			}
+			else
+			{
+				$column = $this->columnQuote(preg_replace("/^(\(JSON\)\s*|#)/i", "", $key));
+
+				switch (gettype($value))
+				{
+					case 'NULL':
+						$fields[] = $column . ' = NULL';
+						break;
+
+					case 'array':
+						preg_match("/\(JSON\)\s*([\w]+)/i", $key, $column_match);
+
+						$fields[] = $column . ' = ' . $this->quote(
+								isset($column_match[ 0 ]) ? json_encode($value) : serialize($value)
+							);
+						break;
+
+					case 'boolean':
+						$fields[] = $column . ' = ' . ($value ? '1' : '0');
+						break;
+
+					case 'integer':
+					case 'double':
+					case 'string':
+						$fields[] = $column . ' = ' . $this->fnQuote($key, $value);
+						break;
+				}
+			}
+		}
+
+    echo 'UPDATE ' . $this->tableQuote($table) . ' SET ' . implode(', ', $fields) . $this->whereClause($where);
+		return $this->exec('UPDATE ' . $this->tableQuote($table) . ' SET ' . implode(', ', $fields) . $this->whereClause($where));
+	}
+
+	public function delete($table, $where)
+	{
+		return $this->exec('DELETE FROM ' . $this->tableQuote($table) . $this->whereClause($where));
+	}
+
+	public function replace($table, $columns, $search = null, $replace = null, $where = null)
+	{
+		if (is_array($columns))
+		{
+			$replace_query = [];
+
+			foreach ($columns as $column => $replacements)
+			{
+				foreach ($replacements as $replace_search => $replace_replacement)
+				{
+					$replace_query[] = $column . ' = REPLACE(' . $this->columnQuote($column) . ', ' . $this->quote($replace_search) . ', ' . $this->quote($replace_replacement) . ')';
+				}
+			}
+
+			$replace_query = implode(', ', $replace_query);
+			$where = $search;
+		}
+		else
+		{
+			if (is_array($search))
+			{
+				$replace_query = [];
+
+				foreach ($search as $replace_search => $replace_replacement)
+				{
+					$replace_query[] = $columns . ' = REPLACE(' . $this->columnQuote($columns) . ', ' . $this->quote($replace_search) . ', ' . $this->quote($replace_replacement) . ')';
+				}
+
+				$replace_query = implode(', ', $replace_query);
+				$where = $replace;
+			}
+			else
+			{
+				$replace_query = $columns . ' = REPLACE(' . $this->columnQuote($columns) . ', ' . $this->quote($search) . ', ' . $this->quote($replace) . ')';
+			}
+		}
+
+		return $this->exec('UPDATE ' . $this->tableQuote($table) . ' SET ' . $replace_query . $this->whereClause($where));
+	}
+
+	public function get($table, $join = null, $columns = null, $where = null)
+	{
+		$column = $where == null ? $join : $columns;
+
+		$is_single_column = (is_string($column) && $column !== '*');
+
+		$query = $this->query($this->selectContext($table, $join, $columns, $where) . ' LIMIT 1');
+
+		if ($query)
+		{
+			$data = $query->fetchAll(PDO::FETCH_ASSOC);
+
+			if (isset($data[ 0 ]))
+			{
+				if ($is_single_column)
+				{
+					return $data[ 0 ][ preg_replace('/^[\w]*\./i', "", $column) ];
+				}
+				
+				if ($column === '*')
+				{
+					return $data[ 0 ];
+				}
+
+				$stack = [];
+
+				foreach ($columns as $key => $value)
+				{
+					if (!is_array($value))
+					{
+						$value = preg_replace('/^[\w]*\./i', "", $value);
+					}
+
+					$this->dataMap(0, $key, $value, $data[ 0 ], $stack);
+				}
+
+				return $stack[ 0 ];
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	public function has($table, $join, $where = null)
+	{
+		$column = null;
+
+		$query = $this->query('SELECT EXISTS(' . $this->selectContext($table, $join, $column, $where, 1) . ')');
+
+		if ($query)
+		{
+			return $query->fetchColumn() === '1';
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	public function count($table, $join = null, $column = null, $where = null)
+	{
+		$query = $this->query($this->selectContext($table, $join, $column, $where, 'COUNT'));
+
+		return $query ? 0 + $query->fetchColumn() : false;
+	}
+
+	public function max($table, $join, $column = null, $where = null)
+	{
+		$query = $this->query($this->selectContext($table, $join, $column, $where, 'MAX'));
+
+		if ($query)
+		{
+			$max = $query->fetchColumn();
+
+			return is_numeric($max) ? $max + 0 : $max;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	public function min($table, $join, $column = null, $where = null)
+	{
+		$query = $this->query($this->selectContext($table, $join, $column, $where, 'MIN'));
+
+		if ($query)
+		{
+			$min = $query->fetchColumn();
+
+			return is_numeric($min) ? $min + 0 : $min;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	public function avg($table, $join, $column = null, $where = null)
+	{
+		$query = $this->query($this->selectContext($table, $join, $column, $where, 'AVG'));
+
+		return $query ? 0 + $query->fetchColumn() : false;
+	}
+
+	public function sum($table, $join, $column = null, $where = null)
+	{
+		$query = $this->query($this->selectContext($table, $join, $column, $where, 'SUM'));
+
+		return $query ? 0 + $query->fetchColumn() : false;
+	}
+
+	public function action($actions)
+	{
+		if (is_callable($actions))
+		{
+			$this->pdo->beginTransaction();
+
+			$result = $actions($this);
+
+			if ($result === false)
+			{
+				$this->pdo->rollBack();
+			}
+			else
+			{
+				$this->pdo->commit();
+			}
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	public function id()
+	{
+		if ($this->database_type == 'oracle')
+		{
+			return 0;
+		}
+		elseif ($this->database_type == 'mssql')
+		{
+			return $this->pdo->query('SELECT SCOPE_IDENTITY()')->fetchColumn();
+		}
+
+		return $this->pdo->lastInsertId();
+	}
+
+	public function debug()
+	{
+		$this->debug_mode = true;
+
 		return $this;
 	}
 
-	/**
-	 * Close connection
-	 */
-	public function __destruct()
+	public function error()
 	{
-		//@$this -> _mysqli -> close();
-		if($this->connect)
-		mysqli_close($this->connect);
+		return $this->pdo->errorInfo();
 	}
 
-	/**
-	 * Get the instance of the class.
-	 *
-	 * @uses $db = Database:getInstance();
-	 *
-	 * @return object Returns the current instance
-	 */
-
-	public static function getInstance()
+	public function last()
 	{
-		return self::$_instance;
+		return end($this->logs);
 	}
-	
-	public function get_table() {
-        $this->query('show tables');
-        $data = $this->fetch();  
+
+	public function log()
+	{
+		return $this->logs;
+	}
+
+	public function info()
+	{
+		$output = [
+			'server' => 'SERVER_INFO',
+			'driver' => 'DRIVER_NAME',
+			'client' => 'CLIENT_VERSION',
+			'version' => 'SERVER_VERSION',
+			'connection' => 'CONNECTION_STATUS'
+		];
+
+		foreach ($output as $key => $value)
+		{
+			$output[ $key ] = @$this->pdo->getAttribute(constant('PDO::ATTR_' . $value));
+		}
+
+		return $output;
+	}
+
+  public function get_table() {
+        $data = $this->pdo->query('show tables')->fetchAll();  
 		foreach ($data as $value) {
             $a[] = $value['Tables_in_' . database];
         }
         return $a;
     }
-	
-	public function get_data() {
-        $data = $this->fetch();
-		$i = 0;
-		$a = array();
-		if(count($data) > 0){
-			foreach($data as $row)
-			{
-				foreach($row as $key=>$value)
-				{
-					$a[$i][$key] = $value;
-				}
-				$i++;
-			}	
-		}
-        return $a;
-    }
-	
-	public function get_first() {
-        $data = $this->fetch_first();
-		$new_data = array();
-		if(count($data)>0){
-			foreach($data as $key=>$value){
-				$new_data[$key] = $value;
-			}
-		}
-        return $new_data;
-    }
-	
-	public function get_column($column_name){
-		$data = $this->get_data();
-		$column = array();
-		foreach($data as $row){
-			$column[] = $row[$column_name];
-		}		
-		return $column;
-	}
-	
-	public function get_field() {
-		$field = array();
-		$result = mysqli_query($this->connect, $this->_query);
-		if (!$result);
-        else {
-            foreach (mysqli_fetch_fields($result) as $value) {
-                $field[] = $value->name;
-            }
-        }
-		
-		return $field;
-    }
-	
-	public function get_field_by_table($nama_tabel) {
-		$this->query("describe $nama_tabel");
-        $data = $this->fetch();  
-		foreach ($data as $value) {
-            $a[] = $value["Field"];
-        }
-        return $a;
-    }
-	
-	public function get_query_string(){
-		return $this->_query;	
-	}
-	
-	public function total_rows(){
-		$total = count($this->fetch());
-		return $total;	
-	}
-
-	/**
-	 * Reset function after execution
-	 *
-	 */
-	public function reset()
-	{
-		unset($this -> _query);
-		unset($this -> _limit);
-		unset($this -> _offset);
-		$this -> _delete = FALSE;
-		$this -> _distinct = FALSE;
-		$this -> _dryrun = FALSE;
-		$this -> array_where = array();
-		$this -> array_select = array();
-		$this -> array_wherein = array();
-		$this -> array_groupby = array();
-		$this -> array_having = array();
-		$this -> array_orderby = array();
-		$this -> array_join = array();
-		
-		return $this;
-	}
-
-	/**
-	 * Sets a limit and offset clause. Offset is optional
-	 *
-	 * @uses $db->limit(0,12); // Will list the first 12 rows
-	 * @uses $db->limit(1); // Will list the first 1 row.
-	 */
-
-	public function limit($limit, $offset = null)
-	{
-		$this -> _limit = (int)$limit;
-		if ($offset)
-			$this -> _offset = (int)$offset;
-
-		return $this;
-	}
-
-	/**
-	 * Executes raw sql query.
-	 *
-	 * @param $query string The raw query
-	 * @param $sanitize boolean If true is provided, the query will be sanitized.
-	 * Default is False
-	 *
-	 * @return object Returns the object. Use $db->fetch() to get the results array
-	 */
-	public function query($query, $sanitize = FALSE)
-	{
-		if ($sanitize == TRUE)
-			$this -> _query = filter_var($query, FILTER_SANITIZE_STRING);
-		else
-			$this -> _query = $query;
-		$this -> _executed = FALSE;
-		/*
-		 * Issue #7 bugfix. If the user entered a custom SQL Query, then we set executed
-		 * as FALSE always, so that the second query can be executed
-		 * https://bitbucket.org/getvivekv/php-mysqli-class/issue/7/error-in-fetch-after-an-executed-sql-query
-		 * Thanks NoXPhasma!
-		 *
-		 **/
-
-		return $this;
-	}
-
-	/**
-	 * Executes a raw query. This is same as query() function but it returns only the
-	 * first row as result.
-	 * @uses $db->query_first("SELECT * FROM table"); // Will product "SELECT * FROM
-	 * table LIMIT 1"
-	 * @return object Returns the object. Use $db->fetch() to get the results array
-	 */
-
-	public function query_first($query)
-	{
-		$this -> limit(1) -> query($query);
-		return $this;
-	}
-
-	/**
-	 * Sets the WHERE clause
-	 * Multiple instances are joined by AND
-	 * @param $key array Can either be string or array.
-	 * @param $value string Optional. Need only if $key is a string..
-	 *
-	 */
-
-	public function where($key, $value = null)
-	{
-		return $this -> _where($key, $value, 'AND ');
-	}
-
-	/**
-	 * Sets the OR WHERE clause
-	 * This function is identical to where() function except that multiple instances
-	 * are joined by OR
-	 * @param $key array Can either be string or array.
-	 * @param $value string Optional. Need only if $key is a string..
-	 *
-	 */
-
-	public function or_where($key, $value = null)
-	{
-		return $this -> _where($key, $value, 'OR ');
-	}
-
-	/**
-	 * Tests whether the string has an SQL operator
-	 *
-	 * @param	string
-	 * @return	bool
-	 */
-	function _has_operator($str)
-	{
-		$str = trim($str);
-		if (!preg_match("/(\s|<|>|!|=|is null|is not null)/i", $str))
-		{
-			return FALSE;
-		}
-
-		return TRUE;
-	}
-
-	/**
-	 * Save WHERE as array for building the query
-	 */
-
-	protected function _where($key, $value, $type = 'AND ')
-	{
-		/**
-		 * If user provided custom where() clauses then we do not need to process it
-		 */
-
-		if (!is_array($key) AND is_null($value))
-		{
-			$this -> array_where[0] = $key;
-			return $this;
-		}
-		/**
-		 * If the WHERE key is an array then we process the array
-		 */
-
-		if (is_array($key) AND is_null($value))
-		{
-			foreach ($key as $wkey => $wval)
-			{
-				$this -> _where($wkey, $wval, $type);
-			}
-		}
-		else
-		{
-			$prefix = (count($this -> array_where) == 0) ? '' : $type;
-			$value = $this->escape($value);
-			if ($this -> _has_operator($key))
-			{
-				if ($this -> isReservedWord($key) == true)
-					$this -> array_where[] = "$prefix`$key` '$value'";
-				else
-					$this -> array_where[] = "$prefix$key '$value'";
-			}
-
-			else
-			{
-				if ($this -> isReservedWord($key) == true)
-					$this -> array_where[] = "$prefix`$key` = '$value'";
-				else
-					$this -> array_where[] = "$prefix$key = '$value'";
-			}
-
-		}
-		return $this;
-
-	}
-
-	/**
-	 * The SELECT portion of the query.
-	 *
-	 * @param $select Can either be a string or an array containing the columns to be
-	 * selected. If none provided, * will be assigned by default
-	 * @uses $db->select("id, email, password") ;
-	 * @uses $db->select(array('id', 'email', 'password')) ;
-	 */
-
-	public function select($select = '*')
-	{
-		if (is_string($select))
-		{
-			$select = explode(',', $select);
-		}
-		foreach ($select as $val)
-		{
-			$val = trim($val);
-
-			if ($val != '')
-			{
-				if ($this -> isReservedWord($val))
-					$this -> array_select[] = "`$val`";
-				else
-					$this -> array_select[] = "$val";
-
-			}
-		}
-		return $this;
-	}
-
-	/**
-	 * Sets the FROM portion of the query.
-	 *
-	 * @param $table string Name of the table.
-	 */
-	public function from($table)
-	{
-		if (isset($this -> table_prefix))
-			$this -> _fromTable = $this -> table_prefix . $table;
-		else
-			$this -> _fromTable = $table;
-		return $this;
-	}
-
-	/**
-	 * Build the query string
-	 */
-
-	private function prepare()
-	{
-
-		/**
-		 * We need to process $this->_query only if the user has not given a _query
-		 * string.
-		 */
-
-		if (!isset($this -> _query))
-		{
-			// Write the "SELECT" portion of the query
-			if (!empty($this -> array_select))
-			{
-				$this -> _query = (!$this -> _distinct) ? 'SELECT ' : 'SELECT DISTINCT ';
-				if ($this -> array_select == '*' OR count($this -> array_select) == 0)
-				{
-					$this -> _query .= '*';
-				}
-				else
-				{
-					$this -> _query .= implode(",", $this -> array_select);
-				}
-			}
-
-			// If delete() is set, then the function is a delete function.
-
-			if ($this -> _delete == TRUE)
-			{
-				// If the query is to delete row(s), make sure we have the table name.
-				if ($this -> _fromTable == null)
-				{
-					$this -> oops('Table Name is required for delete function');
-				}
-				$this -> _query = 'DELETE';
-			}
-
-			// If select() is not called but the call is a SELECT statement
-			if ($this -> _delete == FALSE && empty($this -> array_select))
-			{
-				$this -> _query = (!$this -> _distinct) ? 'SELECT * ' : 'SELECT DISTINCT * ';
-			}
-
-			$this -> _delete = FALSE;
-			// unset delete flag
-
-			// Write the "FROM" portion of the query
-			if (isset($this -> _fromTable))
-			{
-				if ($this -> isReservedWord($this -> _fromTable))
-					$this -> _query .= " FROM `$this->_fromTable` ";
-				else
-					$this -> _query .= " FROM $this->_fromTable ";
-			}
-
-			// Write the "JOIN" portion of the query
-
-			if (count($this -> array_join) > 0)
-			{
-				$this -> _query .= " ";
-				$this -> _query .= implode("\n", $this -> array_join);
-			}
-
-			// Write the "WHERE" portion of the query
-			if (count($this -> array_where) > 0)
-			{
-				/*
-				 * Bugfix #17. If nothing is provided as the where value then we assign it as no
-				 * value
-				 */
-				for ($i = 0; $i < count($this -> array_where); $i++)
-				{
-					if (!$this -> _has_operator($this -> array_where[$i]))
-					{
-						$this -> array_where[$i] = $this -> array_where[$i] . " = ''";
-					}
-				}
-				$this -> _query .= " WHERE ";
-				$this -> _query .= implode("\n", $this -> array_where);
-			}
-
-		}
-
-		// Write the "GROUP BY" portion of the query
-
-		if (!empty($this -> array_groupby))
-		{
-			$this -> _query .= " GROUP BY ";
-			$this -> _query .= implode(', ', $this -> array_groupby);
-		}
-
-		// Write the "HAVING" portion of the query
-
-		if (!empty($this -> array_having))
-		{
-			$this -> _query .= " HAVING ";
-			$this -> _query .= implode("\n", $this -> array_having);
-		}
-
-		// Write the "ORDER BY" portion of the query
-		$order_pos = strpos($this -> _query, "ORDER BY");
-		if (!empty($this -> array_orderby) && $order_pos === false)
-		{
-			$this -> _query .= " ORDER BY ";
-			$this -> _query .= implode(', ', $this -> array_orderby);
-		}
-
-		// Write the "LIMIT" portion of the query
-		$limit_pos = strpos($this -> _query, "LIMIT");
-		if (isset($this -> _limit) && $limit_pos === false)
-		{
-			$this -> _query .= ' LIMIT ' . $this -> _limit;
-		}
-
-		// Write the "OFFSET" portion of the query
-		$offset_pos = strpos($this -> _query, "OFFSET");
-		if (isset($this -> _limit) && isset($this -> _offset) && $limit_pos === false && $offset_pos === false)
-		{
-			$this -> _query .= ' OFFSET ' . $this -> _offset;
-		}
-		
-		return $this;
-
-	}
-
-	/**
-	 * Dry Run function allows the developer to view the full query before its
-	 * execution.
-	 */
-
-	public function dryrun()
-	{
-		$this -> _dryrun = TRUE;
-		return $this;
-	}
-
-	/**
-	 * Execute the query. This function returns the object. For getting the result of
-	 * the execution use fetch();
-	 */
-	
-	public function exec_query($query){
-		$this->_query = $query;
-		$this->execute();	
-	}
-	
-	public function execute()
-	{
-		$this -> prepare();
-		if ($this -> _dryrun == TRUE)
-		{
-			$q = $this -> _query;
-			$this -> reset();
-			$this -> _query = $q;
-			$this -> _dryrun = true;
-			return $this;
-		}
-
-		//$this -> _result = $this -> _mysqli -> query($this -> _query);
-		$this -> _result = mysqli_query($this->connect, $this -> _query);
-		if (!$this -> _result)
-			$this -> oops();
-
-		//$this -> affected_rows = $this -> _mysqli -> affected_rows;
-		$this -> affected_rows = mysqli_affected_rows($this->connect);
-		$this -> _last_query = $this -> _query;
-
-		//$this -> reset();
-		$this -> _executed = TRUE;
-		return $this;
-	}
-
-	/**
-	 * Fetches the result of an execution.
-	 *
-	 * @return array Returns an Associate Array of results.
-	 */
-	public function fetch()
-	{
-		if ($this -> _executed == FALSE || !$this -> _query)
-			$this -> execute();
-
-		if (is_object($this -> _result))
-		{
-			$this -> _executed = FALSE;
-			// Checks whether fetch_all method is available. It is available only with MySQL
-			// Native Driver.
-			if (method_exists('mysqli_result', 'fetch_all'))
-			{
-				$results = $this -> _result -> fetch_all(MYSQLI_ASSOC);
-			}
-			else
-			{
-				for ($results = array(); $tmp = $this -> _result -> fetch_array(MYSQLI_ASSOC); )
-					$results[] = $tmp;
-			}
-			
-			return $results;
-		}
-		else
-		{
-			$this -> oops('Unable to perform fetch()');
-		}
-	}
-
-	/**
-	 * Fetches the first row of the result
-	 */
-	public function fetch_first()
-	{
-		if ($this -> _executed == FALSE || !$this -> _query)
-			$this -> execute();
-
-		if (is_object($this -> _result))
-		{
-			$this -> _executed = FALSE;
-			$results = $this -> _result -> fetch_array(MYSQLI_ASSOC);
-			return $results;
-		}
-		else
-		{
-			$this -> oops('Unable to perform fetch_first()');
-		}
-	}
-
-	/**
-	 * This function returns the last build query. Useful for troubleshooting the
-	 * code.
-	 *
-	 * @return string Last query, exmaple : "SELECT * FROM table"
-	 */
-	public function last_query()
-	{
-		if ($this -> _dryrun == TRUE)
-			return $this -> _query;
-		else
-			return $this -> _last_query;
-	}
-
-	/**
-	 * Remove dangerous input
-	 *
-	 * @param string $string The string needs to be sanitized
-	 * @return string Returns the sanitized string
-	 */
-	public function escape($string)
-	{
-		if (get_magic_quotes_runtime())
-			$string = stripslashes($string);
-		//return @$this -> _mysqli -> real_escape_string($string);
-		return @mysqli_real_escape_string($this->connect,$string);
-	}
-
-	/**
-	 * Inserts data into table.
-	 *
-	 * @param string $table Name of the table
-	 * @param array $data The array which contains the coulumn name and values to be
-	 * inserted.
-	 *
-	 * @return integer Returns the inserted id. ( mysqli->insert_id)
-	 */
-
-	public function insert($table, $data)
-	{
-		if (isset($this -> table_prefixfix))
-			$table = $this -> table_prefix . $table;
-
-		foreach ($data as $key => $value)
-		{
-			$keys[] = "`$key`";
-			if (strpos($value, '()') == true || $value == "CURRENT_TIMESTAMP")
-				$values[] = "$value";
-			else{
-				if($value == '') $values[] = 'NULL'; else
-				$values[] = "'".$this->escape($value)."'";
-			}
-		}
-		$this -> _query = "INSERT INTO " . $table . " (" . implode(', ', $keys) . ") VALUES (" . implode(', ', $values) . ");";
-		return $this -> execute();
-	}
-
-	/**
-	 * Update query. Use where() if needed. Call execute() to execute the query
-	 *
-	 * @param $table string Name of the table
-	 * @param $data string Array containing the data to be updated
-	 *
-	 */
-
-	public function update($table, $data)
-	{
-		if (isset($this -> table_prefix))
-			$table = $this -> table_prefix . $table;
-
-		foreach ($data as $key => $val)
-		{
-			if (strpos($val, '()') == true || $val == "CURRENT_TIMESTAMP")
-				$valstr[] = "`$key`" . " = $val";
-
-			else
-				//$valstr[] = "`$key`" . " = '".$this->escape($val)."'";
-				$valstr[] = "`$key`" . " = '".$this->escape($val)."'";
-		}
-
-		$this -> _query = "UPDATE " . $table . " SET " . implode(', ', $valstr);
-		if (count($this -> array_where) > 0)
-		{
-			$this -> _query .= " WHERE ";
-			$this -> _query .= implode(" ", $this -> array_where);
-		}		
-		return $this -> execute();
-	}
-
-	/**
-	 * Permits to write the LIKE portion of the query using the connector AND
-	 *
-	 * @param $title string or array Can either be a string or array. This is the
-	 * title portion of LIKE
-	 * @param $match string Required only if $title is a string. This is the matching
-	 * portion
-	 * @param $place string This enables you to control where the wildcard (%) is
-	 * placed. Options are "both", "before", and "after". Default is "both"
-	 */
-
-	public function like($title, $match = null, $place = 'both')
-	{
-		$this -> _like($title, $match, $place, 'AND ');
-		return $this;
-
-	}
-
-	/**
-	 * Permits to write the LIKE portion of the query using the connector OR
-	 *
-	 * @param $title string or array Can either be a string or array. This is the
-	 * title portion of LIKE
-	 * @param $match string Required only if $title is a string. This is the matching
-	 * portion
-	 * @param $place string This enables you to control where the wildcard (%) is
-	 * placed. Options are "both", "before", and "after". Default is "both"
-	 */
-
-	public function or_like($title, $match = null, $place = 'both')
-	{
-		$this -> _like($title, $match, $place, 'OR ');
-		return $this;
-	}
-
-	/**
-	 * Builds _like
-	 */
-
-	protected function _like($title, $match, $place = 'both', $type)
-	{
-		// If $title is an array, we need to process it
-
-		if (is_array($title))
-		{
-			foreach ($title as $key => $value)
-			{
-				$this -> _like($key, $value, $place, $type);
-			}
-		}
-		else
-		{
- 			$prefix = (count($this -> array_where) == 0) ? '' : $type;
-			$match = $this->escape($match);
-
-			if ($place == 'both')
-			{
-				if ($this -> isReservedWord($title))
-					$this -> array_where[] = "$prefix`$title` LIKE '%$match%'";
-				else
-					$this -> array_where[] = "$prefix$title LIKE '%$match%'";
-			}
-
-			if ($place == 'before')
-			{
-				if ($this -> isReservedWord($title))
-					$this -> array_where[] = "$prefix`$title` LIKE '%$match'";
-				else
-					$this -> array_where[] = "$prefix$title LIKE '%$match'";
-			}
-
-			if ($place == 'after')
-			{
-				if ($this -> isReservedWord($title))
-					$this -> array_where[] = "$prefix`$title` LIKE '$match%'";
-				else
-					$this -> array_where[] = "$prefix$title LIKE '$match%'";
-			}
-
-			if ($place == 'none')
-			{
-				if ($this -> isReservedWord($title))
-					$this -> array_where[] = "$prefix`$title` LIKE '$match'";
-				else
-					$this -> array_where[] = "$prefix$title LIKE '$match'";
-			}
-
-			return $this;
-
-		}
-
-	}
-
-	private function oops($msg = null)
-	{
-		// If debug is not enabled, do not proceed
-		if (!$this -> debug)
-			return;
-
-		if (!$msg)
-		{
-			$msg = 'MySQL Error has occured';
-		}
-		//$this -> error = mysqli_error($this -> _mysqli);
-		$this -> error = mysqli_error($this->connect);
-
-		/* echo '<table align="center" border="1" cellspacing="0" style="background:white;color:black;width:80%;">
-		<tr><th colspan=2>Database Error</th></tr>
-		<tr><td align="right" valign="top">Message:</td><td> ' . $msg . '</td></tr> ';
-
-		if (!empty($this -> error))
-			echo '<tr><td align="right" valign="top" nowrap>MySQL Error:</td><td>' . $this -> error . '</td></tr>';
-		echo '<tr><td align="right">Date:</td><td>' . date("l, F j, Y \a\\t g:i:s A") . '</td></tr>';
-		if (!empty($this -> _query))
-			echo '<tr><td align="right">Query:</td><td>' . $this -> _query . '</td></tr>';
-
-		$debug = array_reverse(debug_backtrace());
-		echo '<tr><td align="right">Trace:</td><td>';
-		foreach ($debug as $issues)
-		{
-			echo $issues['file'] . ' at line ' . $issues['line'] . '<br>';
-		}
-		echo '</td></tr>';
-		echo '</table>'; */
-		
-		$data["message"] = $msg;
-		$data["error_message"] = $this -> error;
-		$data["query"] = $this -> _query;
-		
-		header('Content-Type: application/json');
-		echo json_encode($data);
-
-		unset($this -> error);
-		if ($this -> die_on_error == TRUE)
-			die();
-	}
-
-	/**
-	 * SELECT_MAX Portion of the query
-	 *
-	 * Writes a "SELECT MAX(field)" portion for your query. You can optionally
-	 * include a second parameter to rename the resulting field.
-	 */
-
-	public function select_max($field, $name = null)
-	{
-		if ($name == null)
-			$name = $field;
-		if ($this -> isReservedWord($field))
-			$this -> array_select[0] = "MAX(`$field`) AS $name ";
-		else
-			$this -> array_select[0] = "MAX($field) AS $name ";
-		return $this;
-	}
-
-	/**
-	 * SELECT_MIN Portion of the query
-	 *
-	 * Writes a "SELECT MIN(field)" portion for your query. You can optionally
-	 * include a second parameter to rename the resulting field.
-	 */
-
-	public function select_min($field, $name = null)
-	{
-		if ($name == null)
-			$name = $field;
-		if ($this -> isReservedWord($field))
-			$this -> array_select[0] = "MIN(`$field`) AS $name ";
-		else
-			$this -> array_select[0] = "MIN($field) AS $name ";
-		return $this;
-
-	}
-
-	/**
-	 * SELECT_AVG Portion of the query
-	 *
-	 * Writes a "SELECT AVG(field)" portion for your query. You can optionally
-	 * include a second parameter to rename the resulting field.
-	 */
-
-	public function select_avg($field, $name = null)
-	{
-		if ($name == null)
-			$name = $field;
-		if ($this -> isReservedWord($field))
-			$this -> array_select[0] = "AVG(`$field`) AS $name ";
-		else
-			$this -> array_select[0] = "AVG($field) AS $name ";
-		return $this;
-
-	}
-
-	/**
-	 * SELECT_SUM Portion of the query
-	 *
-	 * Writes a "SELECT SUM(field)" portion for your query. You can optionally
-	 * include a second parameter to rename the resulting field.
-	 */
-
-	public function select_sum($field, $name = null)
-	{
-		if ($name == null)
-			$name = $field;
-		if ($this -> isReservedWord($field))
-
-			$this -> array_select[0] = "SUM(`$field`) AS $name ";
-		else
-			$this -> array_select[0] = "SUM($field) AS $name ";
-		return $this;
-
-	}
-
-	/**
-	 * WHERE IN
-	 */
-
-	public function where_in($key = NULL, $values = NULL)
-	{
-		$this -> _where_in($key, $values);
-
-	}
-
-	/**
-	 * WHERE OR
-	 */
-
-	public function or_where_in($key = NULL, $values = NULL)
-	{
-		$this -> _where_in($key, $values, FALSE, 'OR ');
-		return $this;
-	}
-
-	/**
-	 * WHERE NOT IN
-	 */
-
-	public function where_not_in($key = NULL, $values = NULL)
-	{
-		$this -> _where_in($key, $values, TRUE);
-		return $this;
-	}
-
-	/**
-	 * WHERE NOT IN OR
-	 */
-	public function or_where_not_in($key = NULL, $values = NULL)
-	{
-		$this -> _where_in($key, $values, TRUE, 'OR ');
-		return $this;
-	}
-
-	/**
-	 * WHERE IN process
-	 *
-	 * Called by where_in, where_in_or, where_not_in, where_not_in_or
-	 */
-	protected function _where_in($key = NULL, $values = NULL, $not = FALSE, $type = 'AND ')
-	{
-		if ($key === NULL OR $values === NULL)
-		{
-			return;
-		}
-		if (!is_array($values))
-		{
-			$values = array($values);
-		}
-		$not = ($not) ? ' NOT' : '';
-		foreach ($values as $value)
-		{
-			$this -> array_wherein[] = "'" . $this->escape($value) . "'";
-		}
-		$prefix = (count($this -> array_where) == 0) ? '' : $type;
-
-		if ($this -> isReservedWord($key))
-			$where_in = $prefix . "`$key`" . $not . " IN (" . implode(", ", $this -> array_wherein) . ") ";
-		else
-			$where_in = $prefix . "$key" . $not . " IN (" . implode(", ", $this -> array_wherein) . ") ";
-		$this -> array_where[] = $where_in;
-		$this -> array_wherein = array();
-		return $this;
-	}
-
-	/**
-	 * Group by
-	 *
-	 * @param string or array $by Either an arry
-	 */
-
-	public function group_by($by)
-	{
-		if (is_string($by))
-		{
-			$by = explode(',', $by);
-		}
-
-		foreach ($by as $val)
-		{
-			$val = trim($val);
-
-			if ($val != '')
-			{
-				if ($this -> isReservedWord($val))
-					$this -> array_groupby[] = "`$val`";
-				else
-					$this -> array_groupby[] = "$val";
-			}
-		}
-		return $this;
-
-	}
-
-	/**
-	 * Sets the HAVING value
-	 *
-	 * Separates multiple calls with AND
-	 *
-	 * @param	string
-	 * @param	string
-	 * @return	object
-	 */
-	public function having($key, $value = '')
-	{
-		return $this -> _having($key, $value, 'AND ');
-	}
-
-	// --------------------------------------------------------------------
-
-	/**
-	 * Sets the OR HAVING value
-	 *
-	 * Separates multiple calls with OR
-	 *
-	 * @param	string
-	 * @param	string
-	 * @return	object
-	 */
-	public function or_having($key, $value = '')
-	{
-		return $this -> _having($key, $value, 'OR ');
-	}
-
-	// --------------------------------------------------------------------
-
-	/**
-	 * Sets the HAVING values
-	 *
-	 * Called by having() or or_having()
-	 *
-	 * @param	string
-	 * @param	string
-	 * @return	object
-	 */
-	protected function _having($key, $value = '', $type = 'AND ')
-	{
-		if (!is_array($key))
-		{
-			$key = array($key => $value);
-		}
-		foreach ($key as $k => $v)
-		{
-			$prefix = (count($this -> array_having) == 0) ? '' : $type;
-
-			if ($v != '')
-			{
-				$v = " = '" . $this->escape($v) . "'";
-			}
-			if ($this -> isReservedWord($k))
-				$this -> array_having[] = $prefix . "`$k`" . $v;
-			else
-				$this -> array_having[] = $prefix . "$k" . $v;
-		}
-		return $this;
-	}
-
-	/**
-	 * ORDER By clause
-	 */
-
-	public function order_by($orderby, $direction = null)
-	{
-		// If custom order by is given
-		if (!is_array($orderby) AND is_null($direction))
-		{
-			$this -> array_orderby[0] = $orderby;
-			return $this;
-		}
-		// If $orderby is an array the we ignore the value of $direction
-
-		if (is_array($orderby))
-		{
-			foreach ($orderby as $key => $value)
-			{
-				$this -> order_by($key, $value);
-			}
-		}
-		else
-		{
-			$direction = strtoupper($direction);
-			if ($this -> isReservedWord($orderby))
-				$this -> array_orderby[] = "`$orderby` $direction";
-			else
-				$this -> array_orderby[] = "$orderby $direction";
-		}
-		return $this;
-
-	}
-
-	/**
-	 * Delete function
-	 *
-	 * @param string $table Name of the table from where the values to be deleted. It
-	 * is optional. If value is not given then the value set by from() will be taken
-	 */
-
-	public function delete($table = null)
-	{
-		if ($table)
-			$this -> from($table);
-		$this -> _delete = TRUE;
-		return $this;
-
-	}
-	
-	public function delete_data($table_name, $where)
-	{
-		$this->exec_query("delete from $table_name " . $where);
-	}
-
-	/**
-	 * Set table prefix
-	 *
-	 * @param string $prefix The prefix of the table. For eg. tbl_
-	 */
-
-	public function set_table_prefix($prefix)
-	{
-		if ($prefix)
-			$this -> table_prefix = $prefix;
-
-		return $this;
-	}
-
-	/**
-	 * Join
-	 *
-	 * Generates the JOIN portion of the query
-	 *
-	 * @param	string $table Table for joining
-	 * @param	string $condition Condition of join
-	 * @param	string $type Type of join. Example 'LEFT', 'RIGHT', 'OUTER', 'INNER',
-	 * 'LEFT OUTER', 'RIGHT OUTER'
-
-	 */
-	public function join($table, $condition, $type = null)
-	{
-		if ($type == null)
-			$type = 'LEFT';
-		// Default is left join
-		$type = strtoupper($type);
-		$join = $type . ' JOIN ' . $table . ' ON ' . $condition;
-		$this -> array_join[] = $join;
-		return $this;
-	}
-
-	/**
-	 * Set a flag for DISTINCT keyword
-	 */
-
-	public function distinct()
-	{
-		$this -> _distinct = TRUE;
-		return $this;
-	}
-
-	/**
-	 * FIND IN SET
-	 * This function is used to generate a FIND_IN_SET query
-	 *
-	 * Generates the FIND_IN_SET portion of the query
-	 *
-	 * @param string $search The search parameter
-	 * @param string $column The name of the column
-	 * @param string $type The connection keyword, AND or OR. Default is AND
-	 */
-	function find_in_set($search, $column, $type = 'AND ')
-	{
-		$prefix = (count($this -> array_where) == 0) ? '' : $type;
-		$this -> array_where[] = "$prefix FIND_IN_SET ('$search', $column) ";
-		return $this;
-	}
-
-	/**
-	 * BETWEEN
-	 *
-	 * This function is used to generate a BETWEEN condition.
-	 *
-	 * @param string $experssion Expression parameter
-	 * @param string $value1 First value
-	 * @param string $value2 Second value
-	 * @param string $type Optional parameter. AND or OR
-	 *
-	 */
-	function between($expression, $value1, $value2, $type = 'AND ')
-	{
-		$prefix = (count($this -> array_where) == 0) ? '' : $type;
-		$this -> array_where[] = "$prefix $expression BETWEEN '$value1' AND  '$value2'";
-		return $this;
-	}
-
-	private function isReservedWord($word)
-	{
-		$words = array(
-			"ACCESSIBLE",
-			"ADD",
-			"ALL",
-			"ALTER",
-			"ANALYZE",
-			"AND",
-			"AS",
-			"ASC",
-			"ASENSITIVE",
-			"BEFORE",
-			"BETWEEN",
-			"BIGINT",
-			"BINARY",
-			"BLOB",
-			"BOTH",
-			"BY",
-			"CALL",
-			"CASCADE",
-			"CASE",
-			"CHANGE",
-			"CHAR",
-			"CHARACTER",
-			"CHECK",
-			"COLLATE",
-			"COLUMN",
-			"CONDITION",
-			"CONSTRAINT",
-			"CONTINUE",
-			"CONVERT",
-			"CREATE",
-			"CROSS",
-			"CURRENT_DATE",
-			"CURRENT_TIME",
-			"CURRENT_TIMESTAMP",
-			"CURRENT_USER",
-			"CURSOR",
-			"DATABASE",
-			"DATABASES",
-			"DAY_HOUR",
-			"DAY_MICROSECOND",
-			"DAY_MINUTE",
-			"DAY_SECOND",
-			"DEC",
-			"DECIMAL",
-			"DECLARE",
-			"DEFAULT",
-			"DELAYED",
-			"DELETE",
-			"DESC",
-			"DESCRIBE",
-			"DETERMINISTIC",
-			"DISTINCT",
-			"DISTINCTROW",
-			"DIV",
-			"DOUBLE",
-			"DROP",
-			"DUAL",
-			"EACH",
-			"ELSE",
-			"ELSEIF",
-			"ENCLOSED",
-			"ESCAPED",
-			"EXISTS",
-			"EXIT",
-			"EXPLAIN",
-			"FALSE",
-			"FETCH",
-			"FLOAT",
-			"FLOAT4",
-			"FLOAT8",
-			"FOR",
-			"FORCE",
-			"FOREIGN",
-			"FROM",
-			"FULLTEXT",
-			"GENERAL[a]",
-			"GRANT",
-			"GROUP",
-			"HAVING",
-			"HIGH_PRIORITY",
-			"HOUR_MICROSECOND",
-			"HOUR_MINUTE",
-			"HOUR_SECOND",
-			"IF",
-			"IGNORE",
-			"IGNORE_SERVER_IDS[b]",
-			"IN",
-			"INDEX",
-			"INFILE",
-			"INNER",
-			"INOUT",
-			"INSENSITIVE",
-			"INSERT",
-			"INT",
-			"INT1",
-			"INT2",
-			"INT3",
-			"INT4",
-			"INT8",
-			"INTEGER",
-			"INTERVAL",
-			"INTO",
-			"IS",
-			"ITERATE",
-			"JOIN",
-			"KEY",
-			"KEYS",
-			"KILL",
-			"LEADING",
-			"LEAVE",
-			"LEFT",
-			"LIKE",
-			"LIMIT",
-			"LINEAR",
-			"LINES",
-			"LOAD",
-			"LOCALTIME",
-			"LOCALTIMESTAMP",
-			"LOCK",
-			"LONG",
-			"LONGBLOB",
-			"LONGTEXT",
-			"LOOP",
-			"LOW_PRIORITY",
-			"MASTER_HEARTBEAT_PERIOD[c]",
-			"MASTER_SSL_VERIFY_SERVER_CERT",
-			"MATCH",
-			"MAXVALUE",
-			"MEDIUMBLOB",
-			"MEDIUMINT",
-			"MEDIUMTEXT",
-			"MIDDLEINT",
-			"MINUTE_MICROSECOND",
-			"MINUTE_SECOND",
-			"MOD",
-			"MODIFIES",
-			"NATURAL",
-			"NOT",
-			"NO_WRITE_TO_BINLOG",
-			"NULL",
-			"NUMERIC",
-			"ON",
-			"OPTIMIZE",
-			"OPTION",
-			"OPTIONALLY",
-			"OR",
-			"ORDER",
-			"OUT",
-			"OUTER",
-			"OUTFILE",
-			"PRECISION",
-			"PRIMARY",
-			"PROCEDURE",
-			"PURGE",
-			"RANGE",
-			"READ",
-			"READS",
-			"READ_WRITE",
-			"REAL",
-			"REFERENCES",
-			"REGEXP",
-			"RELEASE",
-			"RENAME",
-			"REPEAT",
-			"REPLACE",
-			"REQUIRE",
-			"RESIGNAL",
-			"RESTRICT",
-			"RETURN",
-			"REVOKE",
-			"RIGHT",
-			"RLIKE",
-			"SCHEMA",
-			"SCHEMAS",
-			"SECOND_MICROSECOND",
-			"SELECT",
-			"SENSITIVE",
-			"SEPARATOR",
-			"SET",
-			"SHOW",
-			"SIGNAL",
-			"SLOW[d]",
-			"SMALLINT",
-			"SPATIAL",
-			"SPECIFIC",
-			"SQL",
-			"SQLEXCEPTION",
-			"SQLSTATE",
-			"SQLWARNING",
-			"SQL_BIG_RESULT",
-			"SQL_CALC_FOUND_ROWS",
-			"SQL_SMALL_RESULT",
-			"SSL",
-			"STARTING",
-			"STRAIGHT_JOIN",
-			"TABLE",
-			"TERMINATED",
-			"THEN",
-			"TINYBLOB",
-			"TINYINT",
-			"TINYTEXT",
-			"TO",
-			"TRAILING",
-			"TRIGGER",
-			"TRUE",
-			"UNDO",
-			"UNION",
-			"UNIQUE",
-			"UNLOCK",
-			"UNSIGNED",
-			"UPDATE",
-			"USAGE",
-			"USE",
-			"USING",
-			"UTC_DATE",
-			"UTC_TIME",
-			"UTC_TIMESTAMP",
-			"VALUES",
-			"VARBINARY",
-			"VARCHAR",
-			"VARCHARACTER",
-			"VARYING",
-			"WHEN",
-			"WHERE",
-			"WHILE",
-			"WITH",
-			"WRITE",
-			"XOR",
-			"YEAR_MONTH",
-			"ZEROFILL"
-		);
-
-		$word = strtoupper(trim($word));
-		if (in_array($word, $words))
-			return TRUE;
-		else
-			return FALSE;
-			
-	}
 }
+?>

@@ -52,10 +52,6 @@ class Project {
     function set_user() {
         $db = & load_class('DB');
         $crypt = & load_class('Crypt');
-        $tabel = $db->get_table();
-		
-		$ws = $db->query("select CURRENT_TIMESTAMP")->get_data();
-		if (!defined('server_timestamp')) define('server_timestamp',strtotime($ws[0]['CURRENT_TIMESTAMP']));
         
         if (isset($_SESSION[base_url.'login']) && password_verify(session_id().$_SESSION[base_url.'login'],$_SESSION[base_url.'loginhash']) && password_verify(session_id().$_SESSION[base_url.'user'],$_SESSION[base_url.'userhash'])) {
             
@@ -64,14 +60,11 @@ class Project {
             if (!defined('app_username'))
                 define('app_username', $username);
 				
-            $db->query("select * from users where username = '$username'");
-            $data = $db->get_data();
+            $data = $db->query("select * from users where username = '$username'")->fetchAll();
             $id_role = $data[0]['id_role'];
 			$id_user = $data[0]['id_user'];
 			
-			$db->query("select * from roles where id_role = '$id_role'");
-			$data2 = $db->get_data();
-			
+			$data2 = $db->query("select * from roles where id_role = '$id_role'")->fetchAll();
 			if (!defined('app_rolename'))
                 define('app_rolename', $data2[0]["role_name"]);
 				
@@ -89,8 +82,7 @@ class Project {
     function cek_permission() {        
         $db = & load_class('DB');
         $permission = $this->project . '.' . $this->controller . '.' . $this->method;
-        $db->query("select * from roles where id_role='" . id_role . "'");
-        $data = $db->get_data();
+        $data = $db->query("select * from roles where id_role='" . id_role . "'")->fetchAll();
         $permission_list = $data[0]['permission'];
         if (id_role != 1) {
             if (!in_array($permission, explode('---', $permission_list))) {
