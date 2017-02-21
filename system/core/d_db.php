@@ -10,7 +10,6 @@ if (!defined('INDEX'))
  * Released under the MIT license
  */
 
-//use PDO;
 class DB
 {
 	// General
