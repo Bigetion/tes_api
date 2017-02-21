@@ -1,0 +1,21 @@
+<h1 class="page-header ng-scope">Users</h1>
+<div st-safe-src="collection.userList.data" st-table="rowCollection">
+    <table id="tableHead" class="table table-striped panel">
+        <thead>
+            <tr>
+                <th class="col-md-1" st-sort="id_user">#</th>
+                <th class="col-md-3" st-sort="username">User Name</th>
+                <th class="col-md-6" st-sort="username">Role Type</th>
+                <th class="col-md-2" st-sort="username">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat="row in rowCollection">
+                <td>{{$index+1}}</td>
+                <td>{{row.username}}</td>
+                <td>{{row.role_name}}</td>
+                <td>-</td>
+            </tr>
+        </tbody>
+    </table>
+</div>

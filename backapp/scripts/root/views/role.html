@@ -1,0 +1,25 @@
+<h1 class="page-header ng-scope">Roles</h1>
+<div st-safe-src="collection.roleList.data" st-table="rowCollection">
+    <table id="tableHead" class="table table-striped panel">
+        <thead>
+            <tr>
+                <th class="col-md-1" st-sort="id_user">#</th>
+                <th class="col-md-3" st-sort="username">Role Name</th>
+                <th class="col-md-6" st-sort="username">Description</th>
+                <th class="col-md-2" st-sort="username">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat="row in rowCollection">
+                <td>{{$index+1}}</td>
+                <td>{{row.role_name}}</td>
+                <td>{{row.description}}</td>
+                <td>
+
+                    <button ng-if="row.id_role!=1 && row.id_role!=2" class="btn btn-link btn-xs"><i class="fa fa-edit"></i></button>
+                    <button ng-if="row.id_role!=1 && row.id_role!=2" class="btn btn-link btn-xs"><i class="fa fa-trash"></i></button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>

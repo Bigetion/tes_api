@@ -1,0 +1,15 @@
+<h1 class="page-header ng-scope">Modules</h1>
+<div class="row">
+    <div class="col-md-4" ng-repeat="item in var.moduleList">
+        <div class="box box-warning">
+            <div class="box-header with-border">
+                <h3 class="box-title">Module : {{item.name}}</h3>
+            </div>
+            <div class="box-body">
+                <div class="media p-l-5" ng-repeat="itemChild in item.controller">
+                    <div class="media-body">Controller_{{itemChild}}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
