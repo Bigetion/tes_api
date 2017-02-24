@@ -16,12 +16,15 @@ class URI {
 		
 		$ext = array(".html", ".aspx", ".asp");
 		
-		for($i=0;$i<count($uri_link);$i++){
-			$link = $db->query("select * from short_link where short_link='".str_replace($ext, '', $uri_link[$i])."'")->fetchAll();
+		$tabel = $db->get_table();
+		if(in_array('short_link', $tabel)){
+			for($i=0;$i<count($uri_link);$i++){
+				$link = $db->query("select * from short_link where short_link='".str_replace($ext, '', $uri_link[$i])."'")->fetchAll();
 
-			if(count($link)>0) {
-				$link = $link[0];
-				$uri_new = str_replace($uri_link[$i],$link["link"],$uri_new);
+				if(count($link)>0) {
+					$link = $link[0];
+					$uri_new = str_replace($uri_link[$i],$link["link"],$uri_new);
+				}
 			}
 		}
 		
