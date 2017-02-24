@@ -1,7 +1,6 @@
 <?php  if ( ! defined('INDEX')) exit('No direct script access allowed');
 
 class Main {
-
     var $c = array();
 
     function __get($key) {

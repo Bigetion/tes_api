@@ -1,22 +1,11 @@
 <?php  if ( ! defined('INDEX')) exit('No direct script access allowed');
 class URI {
 	function __construct()
-	{
-        // foreach (load_recursive('application/config') as $value) {
-        //     require_once($value);
-        // }
-		
+	{	
 		$main_config = include('application/config/config.php');
         foreach ($main_config as $key => $value) {
             define($key, $value);
         }
-		
-		define('app_style_path',base_url. 'application/style/app/');
-		define('base_style_path',base_url. 'application/style/project/');
-        
-        foreach (load_recursive('application/helpers') as $value) {
-            require_once($value);
-        }	
 	}
 	
     function segment($nomor){

@@ -1,6 +1,4 @@
-<?php
-if (!defined('INDEX'))
-    exit('No direct script access allowed');
+<?php if (!defined('INDEX')) exit('No direct script access allowed');
 /*!
  * Medoo database framework
  * http://medoo.in

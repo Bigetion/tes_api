@@ -2,9 +2,13 @@
 
 class Auth {
     function permission() {
-        $crypt = & load_class('Crypt');
-        if ($_SESSION[base_url.'login']!="aktif" || id_role!=1) {
-            show_error('Authentication', 'Please login first to access this page');
+        $request_payload = json_decode(file_get_contents('php://input'), true);
+        if(empty($request_payload)){
+            
+        }
+        
+        if(!isset($request_payload['jwt'])){
+            show_error('Authentication', 'Token undefined');
         }
     }
 }

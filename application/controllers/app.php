@@ -71,8 +71,8 @@ class App extends Main {
     }
 
     function updatePermissions(){
-        $this->render->json_post();
-        $permissions = $_POST['permissions'];
+        $json_data = $this->render->json_post();
+        $permissions = $json_data['permissions'];
         $data['data'] = '';
         foreach ($permissions as $key => $val) {
             if($key==1) {

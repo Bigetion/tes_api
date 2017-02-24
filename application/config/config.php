@@ -5,6 +5,6 @@ return array(
 	'default_project'             => 'page',
 	'default_project_controller'  => 'data',
 	'default_project_method'      => 'index',
-	'encryption_key'              => ''
+	'secret_key'              		=> '123456789'
 )
 ?>

@@ -1,7 +1,6 @@
 <?php  if ( ! defined('INDEX')) exit('No direct script access allowed');
 
 class Crypt {
-
     function encrypt($str,$ky='mysecretkey') {
         $ky = str_replace(chr(32), '', $ky);
         if (strlen($ky) < 8)

@@ -1,4 +1,4 @@
-<?php
+<?php  if ( ! defined('INDEX')) exit('No direct script access allowed');
 class Set {
 
     var $data = array();
@@ -159,16 +159,22 @@ class Set {
 	function error_message($message, $data=array()){
 		$data['error_message'] = $message;
 	
+		$header_with_payload = get_header('Access-Control-Request-Method');
 		header('Content-Type: application/json');
-		echo json_encode($data);
+		if(!$header_with_payload){
+			echo json_encode($data);
+		}
 		exit();
 	}
 
 	function success_message($message, $data=array()){
 		$data['success_message'] = $message;
 	
+		$header_with_payload = get_header('Access-Control-Request-Method');
 		header('Content-Type: application/json');
-		echo json_encode($data);
+		if(!$header_with_payload){
+			echo json_encode($data);
+		}
 		exit();
 	}
 }

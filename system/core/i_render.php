@@ -1,19 +1,17 @@
-<?php
-
-if (!defined('INDEX'))
-    exit('No direct script access allowed');
+<?php if (!defined('INDEX')) exit('No direct script access allowed');
 
 class Render {
-
     function json($data) {
+        $header_with_payload = get_header('Access-Control-Request-Method');
         header('Content-Type: application/json');
-		echo json_encode($data);
+        if(!$header_with_payload){
+            echo json_encode($data);
+        }
     }
 
 	function json_post(){
-		$_POST = json_decode(file_get_contents('php://input'), true);
+		return json_decode(file_get_contents('php://input'), true);
 	}
 
 }
-
 ?>
