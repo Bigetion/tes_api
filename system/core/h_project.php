@@ -50,10 +50,6 @@ class Project {
         return $this;
     }
 
-    private function checkAuth(){
-        get_header('');
-    }
-
     function set_user() {
         $db = & load_class('DB');
         $render = & load_class('Render');
@@ -84,6 +80,8 @@ class Project {
             catch(Exception $ex){
                 show_error('Authentication','Authorized');
             }
+        }else{
+            show_error('Authentication','Token undefined');
         }
     }
 
@@ -100,17 +98,17 @@ class Project {
     }
 
     function render() {
-        $this->set_user();
-		
 		// Jika meload base url saja 
         if (empty($this->project) && empty($this->controller)) {
+            $this->set_user();
+
             if (!$this->is_exist_project(default_project)) 
 				show_error('Page not found', 'Project ' . default_project . ' was not found');
 				
-		if ($this->is_exist_project_controller(default_project,default_project_controller))
-					require_once('project/' . default_project . '/controllers/' . default_project_controller . '.php');
-				else
-					show_error('Page not found','Main project controller ' . default_project_controller . ' was not found');
+		    if ($this->is_exist_project_controller(default_project,default_project_controller))
+				require_once('project/' . default_project . '/controllers/' . default_project_controller . '.php');
+			else
+				show_error('Page not found','Main project controller ' . default_project_controller . ' was not found');
 				
 			$this->project = default_project;
             $this->controller = default_project_controller;
@@ -128,7 +126,9 @@ class Project {
 					$this->method = $this->controller;
 					$this->controller = $this->project;
 				}
-			}elseif($this->is_exist_project($this->project)){	
+			}elseif($this->is_exist_project($this->project)){
+                $this->set_user();
+
 				if ($this->is_exist_project_controller(default_project,default_project_controller))
 					require_once('project/' . default_project . '/controllers/' . default_project_controller . '.php');
 				else
