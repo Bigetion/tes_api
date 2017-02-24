@@ -80,46 +80,10 @@ class Project {
                         
                 if (!defined('id_role')) define('id_role', $id_role);
                 if (!defined('id_user')) define('id_user', $id_user);
-
-                // $data['payload'] = $this->jwt_payload;
-	
-                // header('Content-Type: application/json');
-                // echo json_encode($data);
-                // exit();
             }
             catch(Exception $ex){
                 show_error('Authentication','Authorized');
             }
-
-            // if ($this->jwt_payload) {
-                
-                // try{
-                //     $username = $this->jwt_payload['user'];
-                //     if (!defined('app_username'))
-                //         define('app_username', $username);
-                        
-                //     $data = $db->query("select * from users where username = '$username'")->fetchAll();
-                //     $id_role = $data[0]['id_role'];
-                //     $id_user = $data[0]['id_user'];
-                    
-                //     $data2 = $db->query("select * from roles where id_role = '$id_role'")->fetchAll();
-                //     if (!defined('app_rolename'))
-                //         define('app_rolename', $data2[0]["role_name"]);
-                        
-                //     if (!defined('id_role')) define('id_role', $id_role);
-                //     if (!defined('id_user')) define('id_user', $id_user);
-                // } catch(Exception $ex){
-                //     show_error("",$ex);
-                // }
-                
-            // }else {
-            //     // $_SESSION[base_url.'login'] = "noaktif";
-            //     // $_SESSION[base_url.'user'] = "guest";
-            //     // $_SESSION[base_url.'loginhash'] = password_hash(session_id()."noaktif",1);
-            //     // $_SESSION[base_url.'userhash'] = password_hash(session_id()."guest",1);
-            // }
-        }else{
-            //show_error('Authentication','Token undefined');
         }
     }
 
