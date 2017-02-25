@@ -16,7 +16,8 @@ var App = angular
         'ngStorage',
         'perfect_scrollbar',
         'classy',
-        'newAarApp.config'
+        'newAarApp.config',
+        'ngCookies'
     ])
     .config(function() {
         PDFJS.workerSrc = 'root/factories/pdfjs/build/pdf.worker.js';

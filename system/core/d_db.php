@@ -1016,8 +1016,7 @@ class DB
 				}
 			}
 		}
-
-    echo 'UPDATE ' . $this->tableQuote($table) . ' SET ' . implode(', ', $fields) . $this->whereClause($where);
+		
 		return $this->exec('UPDATE ' . $this->tableQuote($table) . ' SET ' . implode(', ', $fields) . $this->whereClause($where));
 	}
 

@@ -57,6 +57,162 @@ body {
     }
 }
 
+.ui-select-container.ng-invalid.ng-touched>.ui-select-match,
+.ng-invalid.ng-touched>.ui-select-container .ui-select-match,
+input.ng-invalid.ng-touched,
+tags-input.ng-invalid.ng-touched,
+ui-select-infinite.ng-invalid.ng-touched,
+select.error-required-select,
+input.invalid-input {
+    border-radius: 4px;
+    box-shadow: none;
+    border: 1px solid #D9534F;
+}
+
+input.ng-invalid-maxlength.ng-touched~.error-maxlength,
+.ng-invalid-maxlength.ng-touched~.error-maxlength,
+.ng-invalid-leftover-text.ng-touched~.error-leftover-text {
+    visibility: visible !important;
+    display: block !important;
+    color: #D9534F;
+    border-radius: 4px;
+}
+
+form.ng-submitted input.ng-invalid {
+    visibility: visible !important;
+    display: block !important;
+    border-radius: 4px;
+}
+
+.error-match,
+.ng-invalid-min.ng-touched~.error-min,
+.ng-invalid-required.ng-touched~.error-required,
+.ui-select-container.ng-invalid-required.ng-touched~.error-required,
+ui-select-simple.ng-invalid-required.ng-touched~.error-required,
+.ui-select-infinite.ng-invalid-required.ng-touched .error-required,
+md-datepicker.ng-invalid-required.ng-touched~.error-required,
+md-datepicker.ng-invalid-mindate.ng-touched~.error-mindate,
+md-datepicker.ng-invalid-maxdate.ng-touched~.error-maxdate,
+input.ng-invalid-required.ng-touched~.error-required,
+input.ng-invalid-required.ng-touched~.error-required,
+input.ng-invalid-email.ng-touched~.error-email,
+input.ng-invalid-equal.ng-touched~.error-equal,
+input.ng-invalid-alphanumeric.ng-touched~.error-alphanumeric,
+input.ng-invalid-pattern.ng-touched~.error-pattern,
+textarea.ng-invalid-pattern.ng-touched~.error-pattern,
+input.ng-invalid-number-only.ng-touched~.error-number-only,
+input.ng-invalid-containsnumber.ng-touched~.error-containsnumber,
+input.ng-invalid-case.ng-touched~.error-case,
+input.ng-invalid-maxlength.ng-touched~.error-maxlength,
+input.ng-invalid-max.ng-touched~.error-max,
+input.ng-invalid-minlength.ng-touched~.error-minlength,
+input.ng-touched~.invalid-input,
+input.ng-invalid-address.ng-touched~.error-address,
+input.ng-invalid-phone.ng-touched~.error-phone,
+select~.error-required-select,
+.ng-invalid-parse.ng-touched~.error-parse,
+.ng-invalid-exist.ng-touched~.error-exist,
+.ng-invalid-valid-code.ng-touched~.error-valid-code,
+.ng-invalid-maxlength.ng-touched~.error-maxlength,
+.ng-invalid-leftover-text.ng-touched~.error-leftover-text,
+.ng-invalid-same-forex~.error-same-forex,
+.ng-invalid-max-value~.error-max-value,
+.ng-invalid-mindate~.error-mindate,
+.error-tags-invalid {
+    visibility: visible !important;
+    display: block !important;
+    color: #fff;
+    border-radius: 2px;
+    padding: .2em .6em .3em;
+    font-size: 75%;
+    font-weight: bold;
+    position: absolute;
+    right: 10px;
+    line-height: 1;
+    text-align: center;
+    background: #d9534f;
+    border: 1px solid rgb(217, 83, 79);
+    text-shadow: rgba(0, 0, 0, 0.0980392) 1px 1px 1px;
+    box-shadow: rgba(0, 0, 0, 0.0980392) 1px 1px 2px 0;
+    z-index: 70;
+    margin-top: 3px;
+}
+
+.error-match:after,
+.ng-invalid-required.ng-touched~.error-required:after,
+.ui-select-container.ng-invalid-required.ng-touched~.error-required:after,
+.ui-select-infinite.ng-invalid-required.ng-touched .error-required:after,
+ui-select-simple.ng-invalid-required.ng-touched~.error-required:after,
+md-datepicker.ng-invalid-required.ng-touched~.error-required:after,
+md-datepicker.ng-invalid-mindate.ng-touched~.error-mindate:after,
+md-datepicker.ng-invalid-maxdate.ng-touched~.error-maxdate:after,
+input.ng-invalid-required.ng-touched~.error-required:after,
+input.ng-invalid-email.ng-touched~.error-email:after,
+input.ng-invalid-equal.ng-touched~.error-equal:after,
+input.ng-invalid-alphanumeric.ng-touched~.error-alphanumeric:after,
+input.ng-invalid-pattern.ng-touched~.error-pattern:after,
+textarea.ng-invalid-pattern.ng-touched~.error-pattern:after,
+input.ng-invalid-number-only.ng-touched~.error-number-only:after,
+input.ng-invalid-containsnumber.ng-touched~.error-containsnumber:after,
+input.ng-invalid-case.ng-touched~.error-case:after,
+input.ng-invalid-maxlength.ng-touched~.error-maxlength:after,
+input.ng-invalid-minlength.ng-touched~.error-minlength:after,
+input.ng-touched~.invalid-input:after,
+select~.error-required-select:after,
+.ng-invalid-maxlength.ng-touched~.error-maxlength:after,
+.ng-invalid-max.ng-touched~.error-max:after,
+.ng-invalid-parse.ng-touched~.error-parse:after,
+.ng-invalid-exist.ng-touched~.error-exist:after,
+.ng-invalid-leftover-text.ng-touched~.error-leftover-text:after,
+.ng-invalid-same-forex~.error-same-forex:after,
+.ng-invalid-valid-code.ng-touched~.error-valid-code:after,
+.ng-invalid-max-value.ng-touched~.error-max-value:after,
+.ng-invalid-mindate~.error-mindate:after,
+.error-tags-invalid:after {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent #d9534f transparent;
+    top: -10px;
+    left: 50%;
+}
+
+.error-tags-invalid {
+    margin-top: -4px;
+}
+
+input.ng-invalid.ng-touched::-webkit-input-placeholder,
+input.ng-invalid.ng-touched:focus::-webkit-input-placeholder {
+    color: #D9534F;
+}
+
+input.ng-invalid.ng-touched:-moz-placeholder,
+input.ng-invalid.ng-touched:focus:-moz-placeholder {
+    color: #D9534F;
+}
+
+input.narrow-input {
+    box-sizing: border-box;
+    width: 80%;
+    padding: 8px 4px;
+    height: 38px;
+    font-size: 12px;
+    color: #555555;
+    border: 1px solid #E3E5E8;
+    background: #fff;
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    -o-border-radius: 4px;
+    border-radius: 4px;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    -webkit-transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+    transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+}
+
 .navbar-top-links {
     margin-right: 0;
 }

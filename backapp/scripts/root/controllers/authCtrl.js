@@ -2,7 +2,7 @@
     'use strict';
     App.classy.controller({
         name: 'AuthCtrl',
-        inject: ['$rootScope', '$scope', 'AuthService', '$location'],
+        inject: ['$rootScope', '$scope', 'AuthService', '$location', '$cookies'],
         data: {
             state: {
 
@@ -43,6 +43,7 @@
                             success: response.success_message
                         }
                         if (response.success_message) {
+                            _this.$cookies.put('token', response.jwt);
                             _this.$location.path('/');
                         }
                     });

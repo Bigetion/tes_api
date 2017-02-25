@@ -32,6 +32,35 @@ class App extends Main {
         $this->render->json($data);
     }
 
+    function submitAddRole(){
+        $post_data = $this->render->json_post();
+        $data = array(
+            'role_name'     => $post_data['roleName'],
+            'description'   => $post_data['description'],
+        );
+        if($this->db->insert("roles", $data)){
+            $this->set->success_message(true);
+        }
+    }
+
+    function submitEditRole(){
+        $post_data = $this->render->json_post();
+        $data = array(
+            'role_name'     => $post_data['roleName'],
+            'description'   => $post_data['description'],
+        );
+        if($this->db->update("roles", $data, ["id_role" => $post_data['idRole']])){
+            $this->set->success_message(true);
+        }
+    }
+
+    function submitDeleteRole(){
+        $post_data = $this->render->json_post();
+        if($this->db->delete("roles", ["id_role" => $post_data['idRole']])){
+            $this->set->success_message(true);
+        }
+    }
+
     function getUserList(){
         $data['data'] = $this->db->select("users",[
             "[>]roles" => "id_role"

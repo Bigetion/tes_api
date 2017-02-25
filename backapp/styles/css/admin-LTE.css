@@ -277,7 +277,7 @@ a:focus {
 
 .main-header #navbar-search-input:focus,
 .main-header #navbar-search-input:active {
-    border-color: rgba(0, 0, 0, 0.1) !important;
+    /*border-color: rgba(0, 0, 0, 0.1) !important;*/
     background: rgba(255, 255, 255, 0.9);
 }
 

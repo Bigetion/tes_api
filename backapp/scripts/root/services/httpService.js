@@ -1,17 +1,29 @@
 (function() {
     'use strict';
-    App.service('HttpService', ['$rootScope', '$http', '$q', 'Notification', '$location',
-        function($rootScope, $http, $q, Notification, $location) {
+    App.service('HttpService', ['$rootScope', '$http', '$q', 'Notification', '$location', '$cookies',
+        function($rootScope, $http, $q, Notification, $location, $cookies) {
             return {
                 get: function(url, data, actionName) {
                     var deferred = $q.defer();
+
+                    var extendData = {};
+                    var token = $cookies.get('token');
+
+                    var headers = {
+                        'Accept': 'application/json'
+                    }
+
+                    if (token) {
+                        extendData.jwt = token;
+                        headers['Authorization'] = 'Bearer ' + token;
+                    }
+                    data = angular.extend(data, extendData);
+
                     $http({
                         url: url,
                         method: "POST",
                         data: data,
-                        headers: {
-                            "Accept": "application/json"
-                        }
+                        headers: headers
                     }).then(function(response) {
                         deferred.resolve(response.data);
 
@@ -33,13 +45,25 @@
                 },
                 execute: function(url, data, actionName) {
                     var deferred = $q.defer();
+
+                    var extendData = {};
+                    var token = $cookies.get('token');
+
+                    var headers = {
+                        'Accept': 'application/json'
+                    }
+
+                    if (token) {
+                        extendData.jwt = token;
+                        headers['Authorization'] = 'Bearer ' + token;
+                    }
+                    data = angular.extend(data, extendData);
+
                     $http({
                         url: url,
                         method: "POST",
                         data: data,
-                        headers: {
-                            "Accept": "application/json"
-                        }
+                        headers: headers
                     }).then(function(response) {
                         deferred.resolve(response.data);
 
