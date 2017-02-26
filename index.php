@@ -114,12 +114,6 @@ $controller = str_replace('-','_',segment(3));
 $method = str_replace('-','_',segment(4));
 
 $CONFIG = & load_class('Project');
-
-// header('Access-Control-Allow-Origin: *'); 
-// header("Access-Control-Allow-Credentials: true");
-// header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
-// header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Authorization');
-
 session_start();
 if (substr_count($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip')) ob_start("ob_gzhandler"); else ob_start();
 
