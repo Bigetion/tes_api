@@ -53,12 +53,12 @@ class Project {
     function set_user() {
         $db = & load_class('DB');
         $render = & load_class('Render');
-        $json_data = $render->json_post();
 
-        if(isset($json_data['jwt'])){
+        if(Bearer !== false){
             $jwt = & load_class('JWT');
             try{
-                $this->jwt_payload = $jwt->decode($json_data['jwt'], base64_decode(secret_key));
+
+                $this->jwt_payload = $jwt->decode(Bearer, base64_decode(secret_key));
                 
                 $payload = json_decode(json_encode($this->jwt_payload), true);;
                 $username = $payload['data']['user'];
@@ -69,19 +69,19 @@ class Project {
                 $data = $db->query("select * from users where username = '$username'")->fetchAll();
                 $id_role = $data[0]['id_role'];
                 $id_user = $data[0]['id_user'];
-                    
-                $data2 = $db->query("select * from roles where id_role = '$id_role'")->fetchAll();
-                if (!defined('app_rolename'))
-                    define('app_rolename', $data2[0]["role_name"]);
                         
                 if (!defined('id_role')) define('id_role', $id_role);
                 if (!defined('id_user')) define('id_user', $id_user);
+
+                $data2 = $db->query("select * from roles where id_role = '$id_role'")->fetchAll();
+                if (!defined('app_rolename'))
+                    define('app_rolename', $data2[0]["role_name"]);
             }
             catch(Exception $ex){
-                show_error('Authentication','Authorized');
+                show_error('Authentication','JWT Error');
             }
         }else{
-            show_error('Authentication','Token undefined');
+            show_error('Authentication','Bearer undefined');
         }
     }
 
