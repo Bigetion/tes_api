@@ -70,6 +70,18 @@ class App extends Main {
         $this->render->json($data);
     }
 
+    function getIdRole(){
+        $data['idRole'] = 2;
+        if (defined('id_role')){
+            $data['idRole'] = id_role;
+        }  
+        $this->render->json($data); 
+    }
+
+    function changePassword(){
+        
+    }
+
     function getPermissions() {
         $data['data'] = $this->db->select("roles","*");
         $a = load_file('project');

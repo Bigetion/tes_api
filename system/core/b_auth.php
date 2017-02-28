@@ -33,6 +33,8 @@ class Auth {
                     if($id_role!=1){
                         show_error('Authentication','Please login to access this page');
                     }
+
+                    if (!defined('id_role')) define('id_role', $id_role);
                 }else{
                     show_error('Permission','Origin unauthorized');
                 }
