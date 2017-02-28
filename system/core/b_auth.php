@@ -17,9 +17,14 @@ class Auth {
 
                 $db = & load_class('DB');
                 $jwt = & load_class('JWT');
-                try{
-                    $jwt_payload = $jwt->decode(Bearer, base64_decode(secret_key));
-                    $payload = json_decode(json_encode($jwt_payload), true);
+                
+                $jwt_payload = $jwt->decode(Bearer, base64_decode(secret_key));
+                $payload = json_decode(json_encode($jwt_payload), true);
+
+                $header_origin_payload = $payload['iss'];
+                $header_origin = get_header('origin');
+
+                if($header_origin_payload == $header_origin){
                     $username = $payload['data']['user'];
 
                     $data = $db->query("select * from users where username = '$username'")->fetchAll();
@@ -28,23 +33,13 @@ class Auth {
                     if($id_role!=1){
                         show_error('Authentication','Please login to access this page');
                     }
+                }else{
+                    show_error('Permission','Origin unauthorized');
                 }
-                catch(Exception $ex){
-                    show_error('Authentication','JWT Error');
-                }
-                // header('Content-Type: application/json');
-                // echo json_encode(array('Bearer' => $authorization_header));
-                // exit();
             }else{
-                // header('Content-Type: application/json');
-                // echo json_encode(array('count' => '0'));
-                // exit();
                 define('Bearer',false);
             }
         }else{
-            // header('Content-Type: application/json');
-            // echo json_encode(array('header'=>'0'));
-            // exit();
             define('Bearer',false);
         }
 

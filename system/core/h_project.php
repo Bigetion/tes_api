@@ -54,34 +54,40 @@ class Project {
         $db = & load_class('DB');
         $render = & load_class('Render');
 
-        if(Bearer !== false){
-            $jwt = & load_class('JWT');
-            try{
-
+        if(get_header('Authorization')){
+            $authorization_header = get_header('Authorization');
+            $bearer_header_list = explode('Bearer',get_header('Authorization'));
+            $bearer_pos = stripos($authorization_header, 'bearer ');
+            if ($authorization_header !== false && ($bearer_pos !== false)) {
+                $jwt = & load_class('JWT');
                 $this->jwt_payload = $jwt->decode(Bearer, base64_decode(secret_key));
-                
+                    
                 $payload = json_decode(json_encode($this->jwt_payload), true);;
                 $username = $payload['data']['user'];
 
-                if (!defined('app_username'))
-                    define('app_username', $username);
-                        
-                $data = $db->query("select * from users where username = '$username'")->fetchAll();
-                $id_role = $data[0]['id_role'];
-                $id_user = $data[0]['id_user'];
-                        
-                if (!defined('id_role')) define('id_role', $id_role);
-                if (!defined('id_user')) define('id_user', $id_user);
+                $header_origin_payload = $payload['iss'];
+                $header_origin = get_header('origin');
 
-                $data2 = $db->query("select * from roles where id_role = '$id_role'")->fetchAll();
-                if (!defined('app_rolename'))
-                    define('app_rolename', $data2[0]["role_name"]);
+                if($header_origin_payload == $header_origin){
+                    if (!defined('app_username'))
+                        define('app_username', $username);
+                                
+                    $data = $db->query("select * from users where username = '$username'")->fetchAll();
+                    $id_role = $data[0]['id_role'];
+                    $id_user = $data[0]['id_user'];
+                                
+                    if (!defined('id_role')) define('id_role', $id_role);
+                    if (!defined('id_user')) define('id_user', $id_user);
+
+                    $data2 = $db->query("select * from roles where id_role = '$id_role'")->fetchAll();
+                    if (!defined('app_rolename'))
+                        define('app_rolename', $data2[0]["role_name"]);
+                }else{
+                    show_error('Permission','Origin unauthorized');
+                }
+            }else{
+                show_error('Authentication','Bearer undefined');
             }
-            catch(Exception $ex){
-                show_error('Authentication','JWT Error');
-            }
-        }else{
-            show_error('Authentication','Bearer undefined');
         }
     }
 
