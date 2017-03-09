@@ -39,7 +39,8 @@ class App extends Main {
             'description'   => $post_data['description'],
         );
         if($this->db->insert("roles", $data)){
-            $this->set->success_message(true);
+            $id = $this->db->id();
+            $this->set->success_message(true, array('id'=>$id));
         }
     }
 
